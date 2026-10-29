@@ -1,13 +1,31 @@
-﻿.env
-.env.*
-!.env.example
-!.env.sample
-secrets/
-credentials/
-*.pem
-*.key
+# Virtual environments
 .venv/
 venv/
+ENV/
+env/
+
+# Node dependencies
 node_modules/
+.npm/
+
+# Environment variables & secrets (Never commit API keys)
+.env
+*.env
+!.env.example
+
+# Python bytecode & cache
 __pycache__/
 *.py[cod]
+*$py.class
+*.pytest_cache/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
