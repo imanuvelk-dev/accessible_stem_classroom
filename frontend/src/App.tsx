@@ -10,7 +10,11 @@ import {
   Users, Video, X, Type, Eye, CircleHelp, Languages, Camera, ScanFace
 } from 'lucide-react'
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const API = import.meta.env.VITE_API_BASE_URL ?? (
+  typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://127.0.0.1:8000'
+    : ''
+)
 const LK_URL = import.meta.env.VITE_LIVEKIT_URL || ''
 
 type Role = 'teacher' | 'student'
@@ -34,7 +38,6 @@ export default function App() {
     setError('')
     if (!name.trim()) return setError('Enter your display name first.')
     if (!room.trim()) return setError('Enter a meeting code or create a room.')
-    if (!LK_URL) return setError('Set VITE_LIVEKIT_URL in frontend/.env and restart npm run dev.')
     setBusy(true)
     try {
       const response = await fetch(`${API}/api/token`, {
@@ -44,11 +47,20 @@ export default function App() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.detail || 'Could not create meeting token.')
+      const targetServerUrl = data.serverUrl || LK_URL
+      if (!targetServerUrl) {
+        throw new Error('LiveKit server URL was not provided. Please set LIVEKIT_URL.')
+      }
       setToken(data.token)
-      setServerUrl(data.serverUrl || LK_URL)
+      setServerUrl(targetServerUrl)
       setRoomName(data.room)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unable to connect to the backend.')
+      const msg = e instanceof Error ? e.message : 'Unable to connect to the backend.'
+      setError(
+        msg === 'Failed to fetch'
+          ? 'Could not connect to the backend API. Please verify the server is running or Netlify environment variables are configured.'
+          : msg
+      )
     } finally {
       setBusy(false)
     }
