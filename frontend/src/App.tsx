@@ -45,8 +45,17 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ room, identity: name.trim(), role })
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.detail || 'Could not create meeting token.')
+      let data: any = {}
+      try {
+        data = await response.json()
+      } catch {
+        const text = await response.text().catch(() => '')
+        data = { message: text }
+      }
+      if (!response.ok) {
+        const errorMsg = data.detail || data.errorMessage || data.message || data.error || (typeof data === 'string' ? data : null) || `Server error (${response.status})`
+        throw new Error(errorMsg)
+      }
       const targetServerUrl = data.serverUrl || LK_URL
       if (!targetServerUrl) {
         throw new Error('LiveKit server URL was not provided. Please set LIVEKIT_URL.')

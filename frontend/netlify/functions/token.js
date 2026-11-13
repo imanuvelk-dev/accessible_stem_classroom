@@ -1,4 +1,35 @@
-import { AccessToken } from 'livekit-server-sdk';
+import crypto from 'node:crypto';
+
+function base64Url(str) {
+  return Buffer.from(str).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+function createLiveKitToken(apiKey, apiSecret, identity, room, isTeacher) {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: apiKey,
+    sub: identity,
+    name: identity,
+    nbf: now,
+    exp: now + 7200, // 2 hours
+    video: {
+      roomJoin: true,
+      room: room,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+      roomAdmin: isTeacher
+    }
+  };
+
+  const headerB64 = base64Url(JSON.stringify(header));
+  const payloadB64 = base64Url(JSON.stringify(payload));
+  const data = headerB64 + '.' + payloadB64;
+  const signature = crypto.createHmac('sha256', apiSecret).update(data).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+  return data + '.' + signature;
+}
 
 export const handler = async function (event) {
   const headers = {
@@ -20,21 +51,11 @@ export const handler = async function (event) {
     };
   }
 
-  const LIVEKIT_URL = (process.env.LIVEKIT_URL || process.env.VITE_LIVEKIT_URL || '').trim();
-  const LIVEKIT_API_KEY = (process.env.LIVEKIT_API_KEY || '').trim();
-  const LIVEKIT_API_SECRET = (process.env.LIVEKIT_API_SECRET || '').trim();
+  const LIVEKIT_URL = (process.env.LIVEKIT_URL || process.env.VITE_LIVEKIT_URL || 'wss://accessible-stem-classroom-k1ds8afk.livekit.cloud').trim();
+  const LIVEKIT_API_KEY = (process.env.LIVEKIT_API_KEY || 'APIzUkMEvo54h3p').trim();
+  const LIVEKIT_API_SECRET = (process.env.LIVEKIT_API_SECRET || '0s4ROAsV6YlXvezCwlmLsWTvWeq6lGJN9jWuLfvoIK8B').trim();
 
-  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-    return {
-      statusCode: 503,
-      headers,
-      body: JSON.stringify({
-        detail: 'LiveKit is not configured. Set LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET in Netlify Environment Variables.'
-      })
-    };
-  }
-
-  let body;
+  let body = {};
   try {
     body = JSON.parse(event.body || '{}');
   } catch (err) {
@@ -61,22 +82,13 @@ export const handler = async function (event) {
   }
 
   try {
-    const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+    const token = createLiveKitToken(
+      LIVEKIT_API_KEY,
+      LIVEKIT_API_SECRET,
       identity,
-      name: identity,
-      ttl: '2h'
-    });
-
-    at.addGrant({
-      roomJoin: true,
       room,
-      canPublish: true,
-      canSubscribe: true,
-      canPublishData: true,
-      roomAdmin: role === 'teacher'
-    });
-
-    const token = await at.toJwt();
+      role === 'teacher'
+    );
 
     return {
       statusCode: 200,

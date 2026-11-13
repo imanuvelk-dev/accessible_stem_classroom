@@ -1,0 +1,3 @@
+/api/token  /.netlify/functions/token  200
+/api/captions/contextualize  /.netlify/functions/captions-contextualize  200
+/*  /index.html  200
