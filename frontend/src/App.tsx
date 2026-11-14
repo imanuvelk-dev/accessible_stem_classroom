@@ -449,7 +449,8 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   const speakingParticipants = useSpeakingParticipants()
   const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false })
 
-  const [activeSideDrawer, setActiveSideDrawer] = useState<'chat' | 'people' | 'accessibility' | 'signs' | 'board' | null>(null)
+  // Side features panel is OPEN BY DEFAULT for rich split-screen view
+  const [activeSideDrawer, setActiveSideDrawer] = useState<'chat' | 'people' | 'accessibility' | 'signs' | 'board' | null>('accessibility')
   const [chat, setChat] = useState<ChatItem[]>([])
   const [message, setMessage] = useState('')
   const [captionItems, setCaptionItems] = useState<CaptionItem[]>([])
@@ -464,6 +465,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   const [dyslexicFont, setDyslexicFont] = useState(false)
   const [subject, setSubject] = useState('general')
   const [readingMode, setReadingMode] = useState<'verbatim' | 'stem-focus'>('stem-focus')
+  const [glossarySearch, setGlossarySearch] = useState('')
 
   // Sign Language State
   const [signLanguage, setSignLanguage] = useState<'ISL' | 'ASL'>('ISL')
@@ -774,6 +776,23 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
 
   const latestCaptions = captionItems.slice(-2)
 
+  const filteredGlossaryKeys = useMemo(() => {
+    const q = glossarySearch.trim().toLowerCase()
+    const keys = Object.keys(STEM_DICTIONARY)
+    if (!q) return keys.slice(0, 14)
+    return keys.filter(k => k.toLowerCase().includes(q) || STEM_DICTIONARY[k].subject.toLowerCase().includes(q))
+  }, [glossarySearch])
+
+  const [transcriptCopied, setTranscriptCopied] = useState(false)
+  function copyTranscript() {
+    if (captionItems.length === 0) return
+    const text = captionItems.map(c => `[${c.time}] ${c.speaker}: ${c.text}`).join('\n')
+    navigator.clipboard.writeText(text).then(() => {
+      setTranscriptCopied(true)
+      setTimeout(() => setTranscriptCopied(false), 2000)
+    }).catch(() => {})
+  }
+
   return (
     <div className={`gmeet-room ${highContrast ? 'contrast-mode' : ''} ${dyslexicFont ? 'dyslexic-mode' : ''}`}>
       {/* Top Floating App Bar */}
@@ -787,10 +806,59 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
           <span className="gmeet-topbar-subject">{subject.toUpperCase()} CLASSROOM</span>
         </div>
 
+        {/* Center: Quick Switcher for Side Features */}
         <div className="gmeet-topbar-center">
+          <div className="gmeet-feature-nav-pills">
+            <button
+              type="button"
+              className={`gmeet-nav-pill ${activeSideDrawer === 'accessibility' ? 'active' : ''}`}
+              onClick={() => setActiveSideDrawer('accessibility')}
+              title="Live Captions & STEM Glossary"
+            >
+              <Captions size={14} />
+              <span>Captions & Glossary</span>
+            </button>
+            <button
+              type="button"
+              className={`gmeet-nav-pill ${activeSideDrawer === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveSideDrawer('chat')}
+              title="Classroom Chat"
+            >
+              <MessageSquare size={14} />
+              <span>Chat</span>
+              {chat.length > 0 && <span className="nav-pill-badge">{chat.length}</span>}
+            </button>
+            <button
+              type="button"
+              className={`gmeet-nav-pill ${activeSideDrawer === 'signs' ? 'active' : ''}`}
+              onClick={() => setActiveSideDrawer('signs')}
+              title="Sign Language Bridge"
+            >
+              <Languages size={14} />
+              <span>Sign Bridge</span>
+            </button>
+            <button
+              type="button"
+              className={`gmeet-nav-pill ${activeSideDrawer === 'board' ? 'active' : ''}`}
+              onClick={() => setActiveSideDrawer('board')}
+              title="Shared STEM Whiteboard"
+            >
+              <PenTool size={14} />
+              <span>Whiteboard</span>
+            </button>
+            <button
+              type="button"
+              className={`gmeet-nav-pill ${activeSideDrawer === 'people' ? 'active' : ''}`}
+              onClick={() => setActiveSideDrawer('people')}
+              title="Classroom People"
+            >
+              <Users size={14} />
+              <span>People ({participants.length || 1})</span>
+            </button>
+          </div>
           {handRaised && (
             <div className="gmeet-raised-indicator">
-              <Hand size={15} /> <span>Your hand is raised</span>
+              <Hand size={14} /> <span>Hand Raised</span>
             </div>
           )}
         </div>
@@ -806,7 +874,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
         </div>
       </header>
 
-      {/* Main Video Stage & Side Drawer Area */}
+      {/* Main Video Stage & Side Drawer Area (Split-Screen) */}
       <main className="gmeet-main">
         <section className="gmeet-stage-area">
           {/* Responsive Participant Video Tiles */}
@@ -835,7 +903,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                 )
               })
             ) : (
-              /* Single Fallback Tile when no other tracks exist (e.g. initial connection) */
+              /* Single Fallback Tile when no other tracks exist */
               <div className="gmeet-tile single-user">
                 <div className="gmeet-avatar-placeholder" style={{ backgroundColor: getAvatarColor(name) }}>
                   {name.slice(0, 1).toUpperCase()}
@@ -872,6 +940,19 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             </div>
           )}
 
+          {/* Floating Pill to Restore Side Features if Collapsed */}
+          {!activeSideDrawer && (
+            <button
+              type="button"
+              className="gmeet-expand-side-pill"
+              onClick={() => setActiveSideDrawer('accessibility')}
+              title="Show Side Features Panel (Captions, Chat, Signs, Whiteboard)"
+            >
+              <Sliders size={16} />
+              <span>Show Side Features</span>
+            </button>
+          )}
+
           {/* Interactive STEM Glossary Popover Card */}
           {selectedGlossaryTerm && (
             <div className="gmeet-glossary-card">
@@ -896,55 +977,81 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                   <code>{selectedGlossaryTerm.data.formula}</code>
                 </div>
               )}
+              <div className="gmeet-glossary-actions">
+                <button
+                  type="button"
+                  className="glossary-action-btn"
+                  onClick={() => {
+                    setActiveSideDrawer('chat')
+                    setMessage(`Question about ${selectedGlossaryTerm.term}: `)
+                    setSelectedGlossaryTerm(null)
+                  }}
+                >
+                  <MessageSquare size={13} /> Ask question in Chat
+                </button>
+                <button
+                  type="button"
+                  className="glossary-action-btn secondary"
+                  onClick={() => {
+                    setActiveSideDrawer('signs')
+                    setSignText(selectedGlossaryTerm.term)
+                    setSelectedGlossaryTerm(null)
+                  }}
+                >
+                  <Languages size={13} /> Test in Sign Bridge
+                </button>
+              </div>
             </div>
           )}
         </section>
 
-        {/* Google Meet Right-Side Drawer */}
+        {/* Google Meet Right-Side Features Panel (Docked Sidebar) */}
         {activeSideDrawer && (
           <aside className="gmeet-drawer">
             <div className="gmeet-drawer-header">
-              <h3>
-                {activeSideDrawer === 'chat' && 'In-call messages'}
-                {activeSideDrawer === 'people' && `People (${participants.length || 1})`}
-                {activeSideDrawer === 'accessibility' && 'Caption & Accessibility Settings'}
-                {activeSideDrawer === 'signs' && 'Sign Language Bridge'}
-                {activeSideDrawer === 'board' && 'Shared Math & Science Board'}
-              </h3>
+              <div className="gmeet-drawer-title-group">
+                {activeSideDrawer === 'accessibility' && <Captions size={18} className="drawer-header-icon" />}
+                {activeSideDrawer === 'chat' && <MessageSquare size={18} className="drawer-header-icon" />}
+                {activeSideDrawer === 'signs' && <Languages size={18} className="drawer-header-icon" />}
+                {activeSideDrawer === 'board' && <PenTool size={18} className="drawer-header-icon" />}
+                {activeSideDrawer === 'people' && <Users size={18} className="drawer-header-icon" />}
+                <h3>
+                  {activeSideDrawer === 'accessibility' && 'Captions & STEM Glossary'}
+                  {activeSideDrawer === 'chat' && 'In-Call Chat'}
+                  {activeSideDrawer === 'signs' && 'Sign Language Bridge'}
+                  {activeSideDrawer === 'board' && 'Shared STEM Whiteboard'}
+                  {activeSideDrawer === 'people' && `Classroom People (${participants.length || 1})`}
+                </h3>
+              </div>
               <button
                 type="button"
                 className="gmeet-drawer-close"
                 onClick={() => setActiveSideDrawer(null)}
+                title="Collapse side panel"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Quick Drawer Tab Switcher */}
+            {/* Quick Drawer Tab Switcher with Icons + Labels */}
             <div className="gmeet-drawer-tabs">
+              <button
+                type="button"
+                className={activeSideDrawer === 'accessibility' ? 'drawer-tab active' : 'drawer-tab'}
+                onClick={() => setActiveSideDrawer('accessibility')}
+                title="Captions & Glossary"
+              >
+                <Captions size={15} />
+                <span>Captions</span>
+              </button>
               <button
                 type="button"
                 className={activeSideDrawer === 'chat' ? 'drawer-tab active' : 'drawer-tab'}
                 onClick={() => setActiveSideDrawer('chat')}
                 title="Chat"
               >
-                <MessageSquare size={16} />
-              </button>
-              <button
-                type="button"
-                className={activeSideDrawer === 'people' ? 'drawer-tab active' : 'drawer-tab'}
-                onClick={() => setActiveSideDrawer('people')}
-                title="People"
-              >
-                <Users size={16} />
-              </button>
-              <button
-                type="button"
-                className={activeSideDrawer === 'accessibility' ? 'drawer-tab active' : 'drawer-tab'}
-                onClick={() => setActiveSideDrawer('accessibility')}
-                title="Accessibility & Transcript"
-              >
-                <Captions size={16} />
+                <MessageSquare size={15} />
+                <span>Chat</span>
               </button>
               <button
                 type="button"
@@ -952,7 +1059,8 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                 onClick={() => setActiveSideDrawer('signs')}
                 title="Sign Language"
               >
-                <Languages size={16} />
+                <Languages size={15} />
+                <span>Sign Bridge</span>
               </button>
               <button
                 type="button"
@@ -960,7 +1068,17 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                 onClick={() => setActiveSideDrawer('board')}
                 title="Whiteboard"
               >
-                <PenTool size={16} />
+                <PenTool size={15} />
+                <span>Whiteboard</span>
+              </button>
+              <button
+                type="button"
+                className={activeSideDrawer === 'people' ? 'drawer-tab active' : 'drawer-tab'}
+                onClick={() => setActiveSideDrawer('people')}
+                title="People"
+              >
+                <Users size={15} />
+                <span>People</span>
               </button>
             </div>
 
@@ -987,6 +1105,33 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                       ))
                     )}
                   </div>
+
+                  {/* Quick Question Chips for Accessible Interaction */}
+                  <div className="gmeet-quick-prompts">
+                    <span className="quick-prompts-label">Quick ask:</span>
+                    <button
+                      type="button"
+                      className="gmeet-quick-chip"
+                      onClick={() => setMessage('Could you please explain that formula again?')}
+                    >
+                      Explain formula
+                    </button>
+                    <button
+                      type="button"
+                      className="gmeet-quick-chip"
+                      onClick={() => setMessage('Can you please slow down the pace?')}
+                    >
+                      Slow down
+                    </button>
+                    <button
+                      type="button"
+                      className="gmeet-quick-chip"
+                      onClick={() => setMessage('What does this variable denote?')}
+                    >
+                      Variable meaning
+                    </button>
+                  </div>
+
                   <form
                     className="gmeet-chat-input-bar"
                     onSubmit={e => { e.preventDefault(); sendMessage() }}
@@ -994,17 +1139,10 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                     <input
                       value={message}
                       onChange={e => setMessage(e.target.value)}
-                      placeholder="Send a message to everyone"
+                      placeholder="Send a message to everyone..."
                     />
                     <button type="submit" disabled={!message.trim()}><Send size={16} /></button>
                   </form>
-                  <button
-                    type="button"
-                    className="gmeet-btn-quick-question"
-                    onClick={() => { setMessage('I have a question about this equation/concept: ') }}
-                  >
-                    <Hand size={14} /> Quick Question Prompt
-                  </button>
                 </div>
               )}
 
@@ -1129,9 +1267,50 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                     </select>
                   </div>
 
+                  {/* STEM Lexicon & Formula Explorer */}
+                  <div className="gmeet-setting-group stem-glossary-section">
+                    <div className="gmeet-setting-label-row">
+                      <label><Sparkles size={13} /> Interactive STEM Lexicon</label>
+                      <span className="stem-lexicon-count">{Object.keys(STEM_DICTIONARY).length} concepts</span>
+                    </div>
+                    <div className="gmeet-glossary-search-box">
+                      <Search size={14} />
+                      <input
+                        value={glossarySearch}
+                        onChange={e => setGlossarySearch(e.target.value)}
+                        placeholder="Search term or formula (e.g. Newton, derivative)..."
+                      />
+                    </div>
+                    <div className="gmeet-glossary-chip-list">
+                      {filteredGlossaryKeys.map(key => (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`gmeet-term-chip ${selectedGlossaryTerm?.term.toLowerCase() === key ? 'active' : ''}`}
+                          onClick={() => setSelectedGlossaryTerm({ term: key, data: STEM_DICTIONARY[key] })}
+                        >
+                          {key}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Complete Transcript History */}
                   <div className="gmeet-transcript-section">
-                    <h4>Session Transcript ({captionItems.length})</h4>
+                    <div className="gmeet-transcript-header">
+                      <h4>Session Transcript ({captionItems.length})</h4>
+                      {captionItems.length > 0 && (
+                        <button
+                          type="button"
+                          className="gmeet-btn-copy-transcript"
+                          onClick={copyTranscript}
+                          title="Copy transcript to clipboard"
+                        >
+                          <Copy size={13} />
+                          <span>{transcriptCopied ? 'Copied!' : 'Copy Notes'}</span>
+                        </button>
+                      )}
+                    </div>
                     <div className="gmeet-transcript-feed">
                       {captionItems.length === 0 ? (
                         <p className="gmeet-empty-note">Live captions will be recorded here for review.</p>
@@ -1228,6 +1407,44 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                     </div>
                   </div>
 
+                  {/* Quick Sign Phrases for Hearing/Speech-Impaired Students */}
+                  <div className="gmeet-setting-group">
+                    <label>Quick Student Sign Language Gestures</label>
+                    <div className="gmeet-quick-sign-grid">
+                      {[
+                        "Can you explain the formula again?",
+                        "Please repeat the last sentence.",
+                        "Understood! Thank you.",
+                        "I have a doubt regarding this equation.",
+                        "Please show on the whiteboard.",
+                        "Yes",
+                        "No"
+                      ].map((phrase, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="gmeet-sign-phrase-btn"
+                          onClick={() => {
+                            const item: ChatItem = {
+                              id: crypto.randomUUID(),
+                              sender: name,
+                              role,
+                              text: `[${signLanguage} Sign → Text] ${phrase}`,
+                              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                              kind: 'student'
+                            }
+                            setChat(prev => [...prev, item])
+                            sendPacket({ type: 'classroom-message', item })
+                            setSignStatus(`Sent sign translation: "${phrase}"`)
+                          }}
+                        >
+                          <Languages size={13} />
+                          <span>{phrase}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="gmeet-setting-group">
                     <label>Manual Verified Sign / Gloss Input</label>
                     <textarea
@@ -1272,6 +1489,44 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                       Clear canvas
                     </button>
                   </div>
+
+                  {/* Quick Formula Inserter */}
+                  <div className="gmeet-board-formula-bar">
+                    <span className="formula-bar-label">Insert equation:</span>
+                    <div className="formula-chips">
+                      {[
+                        'F = m · a',
+                        'f\'(x) = dy/dx',
+                        '∫ f(x) dx',
+                        'x = [-b ± √(b²-4ac)] / 2a',
+                        'E = m · c²',
+                        'V = I · R',
+                        'lim(h→0)',
+                        'ATP'
+                      ].map((eq, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="gmeet-formula-chip"
+                          onClick={() => {
+                            const ctx = canvasRef.current?.getContext('2d')
+                            if (ctx && canvasRef.current) {
+                              ctx.font = 'bold 20px Consolas, monospace'
+                              ctx.fillStyle = brushColor
+                              ctx.fillText(eq, 30, 50 + (i % 6) * 35)
+                              sendPacket({
+                                type: 'classroom-message',
+                                item: { id: crypto.randomUUID(), sender: name, role, text: `[Whiteboard Formula] ${eq}`, kind: 'draw' }
+                              })
+                            }
+                          }}
+                        >
+                          {eq}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <canvas
                     ref={canvasRef}
                     width={640}
@@ -1329,12 +1584,12 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             {localParticipant.isCameraEnabled ? <Video size={20} /> : <VideoOff size={20} />}
           </button>
 
-          {/* Live Captions (CC) */}
+          {/* Live Captions (CC) Overlay Toggle */}
           <button
             type="button"
             className={`gmeet-circle-btn ${captionEnabled ? 'active-blue' : ''}`}
             onClick={() => setCaptionEnabled(!captionEnabled)}
-            title={captionEnabled ? 'Turn off captions' : 'Turn on captions'}
+            title={captionEnabled ? 'Turn off subtitles' : 'Turn on subtitles'}
           >
             <Captions size={20} />
           </button>
@@ -1349,17 +1604,17 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             <Hand size={20} />
           </button>
 
-          {/* Whiteboard Canvas */}
+          {/* Whiteboard Quick Toggle */}
           <button
             type="button"
             className={`gmeet-circle-btn ${activeSideDrawer === 'board' ? 'active-blue' : ''}`}
             onClick={() => setActiveSideDrawer(activeSideDrawer === 'board' ? null : 'board')}
-            title="Whiteboard"
+            title="Shared STEM Whiteboard"
           >
             <PenTool size={20} />
           </button>
 
-          {/* Sign Language Bridge */}
+          {/* Sign Language Bridge Quick Toggle */}
           <button
             type="button"
             className={`gmeet-circle-btn ${activeSideDrawer === 'signs' ? 'active-blue' : ''}`}
@@ -1369,7 +1624,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             <Languages size={20} />
           </button>
 
-          {/* End Call Button */}
+          {/* Leave Call */}
           <button
             type="button"
             className="gmeet-leave-pill"
@@ -1380,17 +1635,16 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
           </button>
         </div>
 
-        {/* Right: Drawer Triggers & Tools */}
+        {/* Right: Drawer Triggers & Netlify Badge Clearance */}
         <div className="gmeet-dock-right">
-          {/* People */}
+          {/* Captions & Glossary */}
           <button
             type="button"
-            className={`gmeet-tool-btn ${activeSideDrawer === 'people' ? 'active' : ''}`}
-            onClick={() => setActiveSideDrawer(activeSideDrawer === 'people' ? null : 'people')}
-            title="People"
+            className={`gmeet-tool-btn ${activeSideDrawer === 'accessibility' ? 'active' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer === 'accessibility' ? null : 'accessibility')}
+            title="Captions & STEM Glossary"
           >
-            <Users size={19} />
-            <span className="gmeet-count-badge">{participants.length || 1}</span>
+            <Captions size={19} />
           </button>
 
           {/* Chat */}
@@ -1398,20 +1652,31 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             type="button"
             className={`gmeet-tool-btn ${activeSideDrawer === 'chat' ? 'active' : ''}`}
             onClick={() => setActiveSideDrawer(activeSideDrawer === 'chat' ? null : 'chat')}
-            title="Chat with everyone"
+            title="Classroom Chat"
           >
             <MessageSquare size={19} />
             {chat.length > 0 && <span className="gmeet-dot-badge" />}
           </button>
 
-          {/* Accessibility Settings */}
+          {/* People */}
           <button
             type="button"
-            className={`gmeet-tool-btn ${activeSideDrawer === 'accessibility' ? 'active' : ''}`}
-            onClick={() => setActiveSideDrawer(activeSideDrawer === 'accessibility' ? null : 'accessibility')}
-            title="Accessibility and Captions"
+            className={`gmeet-tool-btn ${activeSideDrawer === 'people' ? 'active' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer === 'people' ? null : 'people')}
+            title="Classroom People"
           >
-            <Settings2 size={19} />
+            <Users size={19} />
+            <span className="gmeet-count-badge">{participants.length || 1}</span>
+          </button>
+
+          {/* Side Panel Toggle */}
+          <button
+            type="button"
+            className={`gmeet-tool-btn ${activeSideDrawer ? 'active' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer ? null : 'accessibility')}
+            title={activeSideDrawer ? 'Hide side panel' : 'Show side panel'}
+          >
+            <Sliders size={19} />
           </button>
         </div>
       </footer>

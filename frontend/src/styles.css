@@ -835,6 +835,51 @@ input, select, textarea {
 .gmeet-topbar-center {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.gmeet-feature-nav-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(23, 24, 28, 0.7);
+  padding: 4px 6px;
+  border-radius: 24px;
+  border: 1px solid var(--gmeet-border);
+}
+
+.gmeet-nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 18px;
+  font-size: 12px;
+  color: var(--gmeet-text-secondary);
+  background: transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.gmeet-nav-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.gmeet-nav-pill.active {
+  background: rgba(138, 180, 248, 0.2);
+  color: var(--gmeet-blue);
+  border: 1px solid rgba(138, 180, 248, 0.35);
+  font-weight: 600;
+}
+
+.nav-pill-badge {
+  background: var(--gmeet-blue);
+  color: #202124;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
 }
 
 .gmeet-raised-indicator {
@@ -1156,6 +1201,75 @@ input, select, textarea {
   font-weight: 600;
 }
 
+.gmeet-glossary-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+.glossary-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(138, 180, 248, 0.15);
+  border: 1px solid var(--gmeet-blue);
+  color: var(--gmeet-blue);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.glossary-action-btn:hover {
+  background: var(--gmeet-blue);
+  color: #202124;
+}
+
+.glossary-action-btn.secondary {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e8eaed;
+  background: #1e1f21;
+}
+
+.glossary-action-btn.secondary:hover {
+  background: #35373b;
+  color: #fff;
+}
+
+/* Floating Expand Side Pill (Shown when side panel is collapsed) */
+.gmeet-expand-side-pill {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  z-index: 25;
+  background: rgba(32, 33, 36, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--gmeet-blue);
+  color: var(--gmeet-blue);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.gmeet-expand-side-pill:hover {
+  transform: scale(1.03);
+  background: var(--gmeet-blue);
+  color: #202124;
+}
+
 /* ==========================================================================
    GOOGLE MEET SIGNATURE BOTTOM CONTROL DOCK
    ========================================================================== */
@@ -1163,6 +1277,7 @@ input, select, textarea {
   height: 80px;
   background-color: var(--gmeet-bg);
   padding: 0 24px;
+  padding-right: 150px; /* Crucial: clears Netlify preview badge at bottom right */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1175,7 +1290,7 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 240px;
+  min-width: 200px;
 }
 
 .gmeet-dock-time {
@@ -1225,6 +1340,8 @@ input, select, textarea {
   color: #fff;
   display: grid;
   place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .gmeet-circle-btn:hover {
@@ -1263,6 +1380,8 @@ input, select, textarea {
   align-items: center;
   gap: 8px;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .gmeet-leave-pill:hover {
@@ -1273,8 +1392,8 @@ input, select, textarea {
 .gmeet-dock-right {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 240px;
+  gap: 10px;
+  min-width: 200px;
   justify-content: flex-end;
 }
 
@@ -1286,6 +1405,8 @@ input, select, textarea {
   place-items: center;
   color: var(--gmeet-text-secondary);
   position: relative;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .gmeet-tool-btn:hover {
@@ -1295,7 +1416,8 @@ input, select, textarea {
 
 .gmeet-tool-btn.active {
   color: var(--gmeet-blue);
-  background: rgba(138, 180, 248, 0.15);
+  background: rgba(138, 180, 248, 0.18);
+  border: 1px solid rgba(138, 180, 248, 0.35);
 }
 
 .gmeet-count-badge {
@@ -1321,31 +1443,47 @@ input, select, textarea {
 }
 
 /* ==========================================================================
-   GOOGLE MEET RIGHT DRAWER
+   GOOGLE MEET RIGHT DRAWER (SPLIT-SCREEN SIDE PANEL)
    ========================================================================== */
 .gmeet-drawer {
-  width: 360px;
+  width: 380px;
+  min-width: 340px;
+  max-width: 420px;
   background: var(--gmeet-surface);
   border: 1px solid var(--gmeet-border);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   animation: slideDrawer 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
 }
 
 .gmeet-drawer-header {
   height: 56px;
-  padding: 0 20px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--gmeet-border);
+  background: rgba(23, 24, 28, 0.6);
+}
+
+.gmeet-drawer-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drawer-header-icon {
+  color: var(--gmeet-blue);
+  flex-shrink: 0;
 }
 
 .gmeet-drawer-header h3 {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #fff;
 }
 
@@ -1356,6 +1494,8 @@ input, select, textarea {
   display: grid;
   place-items: center;
   color: var(--gmeet-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .gmeet-drawer-close:hover {
@@ -1366,17 +1506,25 @@ input, select, textarea {
 .gmeet-drawer-tabs {
   display: flex;
   border-bottom: 1px solid var(--gmeet-border);
-  padding: 6px 12px;
-  gap: 6px;
+  padding: 6px 8px;
+  gap: 4px;
+  background: rgba(20, 21, 24, 0.7);
 }
 
 .drawer-tab {
   flex: 1;
   height: 36px;
   border-radius: 8px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
   color: var(--gmeet-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .drawer-tab:hover {
@@ -1386,13 +1534,203 @@ input, select, textarea {
 
 .drawer-tab.active {
   background: rgba(138, 180, 248, 0.2);
+  border: 1px solid rgba(138, 180, 248, 0.35);
   color: var(--gmeet-blue);
+  font-weight: 600;
 }
 
 .gmeet-drawer-content {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px;
+  padding: 16px 18px;
+}
+
+/* Chat Quick Prompts */
+.gmeet-quick-prompts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.quick-prompts-label {
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-quick-chip {
+  background: rgba(253, 214, 99, 0.12);
+  border: 1px solid rgba(253, 214, 99, 0.25);
+  color: var(--gmeet-yellow);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gmeet-quick-chip:hover {
+  background: var(--gmeet-yellow);
+  color: #202124;
+  font-weight: 600;
+}
+
+/* Transcript Header */
+.gmeet-transcript-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.gmeet-btn-copy-transcript {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(138, 180, 248, 0.12);
+  border: 1px solid rgba(138, 180, 248, 0.3);
+  color: var(--gmeet-blue);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gmeet-btn-copy-transcript:hover {
+  background: var(--gmeet-blue);
+  color: #202124;
+}
+
+/* STEM Glossary Section in Sidebar */
+.stem-glossary-section {
+  border-top: 1px solid var(--gmeet-border);
+  padding-top: 14px;
+  margin-top: 14px;
+}
+
+.stem-lexicon-count {
+  font-size: 11px;
+  color: var(--gmeet-blue);
+  background: rgba(138, 180, 248, 0.12);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.gmeet-glossary-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 8px 0;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-glossary-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 12px;
+  width: 100%;
+}
+
+.gmeet-glossary-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.gmeet-term-chip {
+  background: #1e2024;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #c2e7ff;
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: all 0.15s ease;
+}
+
+.gmeet-term-chip:hover, .gmeet-term-chip.active {
+  background: var(--gmeet-blue);
+  color: #202124;
+  font-weight: 600;
+}
+
+/* Quick Student Sign Language Grid */
+.gmeet-quick-sign-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
+.gmeet-sign-phrase-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  border-radius: 8px;
+  color: #e8eaed;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gmeet-sign-phrase-btn:hover {
+  background: rgba(138, 180, 248, 0.15);
+  border-color: var(--gmeet-blue);
+  color: var(--gmeet-blue);
+}
+
+/* Whiteboard Formula Quick Inserter */
+.gmeet-board-formula-bar {
+  margin-bottom: 10px;
+}
+
+.formula-bar-label {
+  display: block;
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+  margin-bottom: 4px;
+}
+
+.formula-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gmeet-formula-chip {
+  background: #1e2024;
+  border: 1px solid var(--gmeet-border);
+  color: #c2e7ff;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gmeet-formula-chip:hover {
+  background: var(--gmeet-blue);
+  color: #202124;
 }
 
 /* Drawer: Chat View */
