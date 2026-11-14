@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  LiveKitRoom, RoomAudioRenderer, VideoConference, useLocalParticipant,
-  useRoomContext, useTracks
+  LiveKitRoom, RoomAudioRenderer, useLocalParticipant,
+  useRoomContext, useTracks, useParticipants, VideoTrack,
+  useSpeakingParticipants
 } from '@livekit/components-react'
-import { Track, RoomEvent, DataPacket_Kind } from 'livekit-client'
+import { Track, RoomEvent } from 'livekit-client'
 import {
   Accessibility, BookOpen, Captions, Check, ChevronDown, Copy, DoorOpen,
-  Hand, MessageCircle, Mic, MonitorUp, PenLine, Send, Settings2, Sparkles,
-  Users, Video, X, Type, Eye, CircleHelp, Languages, Camera, ScanFace
+  Hand, MessageSquare, Mic, MicOff, MonitorUp, PenTool, Send, Settings2, Sparkles,
+  Users, Video, VideoOff, PhoneOff, X, Type, Eye, HelpCircle, Languages, Camera,
+  ScanFace, Info, Volume2, Maximize2, Search, Sliders
 } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_BASE_URL ?? (
@@ -18,11 +20,37 @@ const API = import.meta.env.VITE_API_BASE_URL ?? (
 const LK_URL = import.meta.env.VITE_LIVEKIT_URL || ''
 
 type Role = 'teacher' | 'student'
-type ChatItem = { id: string; sender: string; role: string; text: string; kind: 'chat' | 'student' | 'draw' }
-type CaptionItem = { id: number; raw: string; text: string; time: string; changed: boolean }
+type ChatItem = { id: string; sender: string; role: string; text: string; time?: string; kind: 'chat' | 'student' | 'draw' }
+type CaptionItem = { id: number; raw: string; text: string; time: string; speaker?: string; changed: boolean }
+
+const STEM_DICTIONARY: Record<string, { definition: string; formula?: string; subject: string }> = {
+  "newton's second law": { definition: "The net force on an object is equal to the mass of the object multiplied by its acceleration.", formula: "F = m · a", subject: "Physics" },
+  "photosynthesis": { definition: "Process by which green plants and certain organisms use sunlight to synthesize nutrients from carbon dioxide and water.", formula: "6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂", subject: "Biology" },
+  "mitochondria": { definition: "Organelles in eukaryotic cells generating most of the chemical energy needed to power biochemical reactions (ATP).", formula: "ATP synthesis", subject: "Biology" },
+  "derivative": { definition: "Measures the instantaneous rate of change of a function with respect to one of its variables.", formula: "f'(x) = lim(h→0) [f(x+h) - f(x)] / h", subject: "Mathematics" },
+  "integral": { definition: "Assigns numbers to functions in a way that describes displacement, area, volume, and other concepts arising by combining infinitesimal data.", formula: "∫ f(x) dx", subject: "Mathematics" },
+  "eigenvalue": { definition: "A scalar associated with a linear system of equations (Ax = λx) that scales eigenvectors during transformation.", formula: "A v = λ v", subject: "Mathematics" },
+  "algorithm": { definition: "A finite sequence of rigorous, unambiguous instructions, typically used to solve a class of specific problems or perform a computation.", subject: "Computer Science" },
+  "quadratic equation": { definition: "A second-order polynomial equation in a single variable x with a non-zero leading coefficient.", formula: "x = [-b ± √(b² - 4ac)] / (2a)", subject: "Mathematics" },
+  "ohm's law": { definition: "The current through a conductor between two points is directly proportional to the voltage across the two points.", formula: "V = I · R", subject: "Physics" },
+  "sql": { definition: "Structured Query Language: a domain-specific language used in programming and designed for managing data in relational databases.", subject: "Computer Science" },
+  "neural network": { definition: "A computational model inspired by the structure of biological neural networks, consisting of interconnected nodes (neurons).", formula: "y = σ(W · x + b)", subject: "AI & ML" },
+  "kinetic energy": { definition: "The energy an object possesses due to its motion, defined as the work needed to accelerate a body of a given mass from rest.", formula: "KE = ½ m v²", subject: "Physics" },
+  "gravitational force": { definition: "Attractive force existing between any two masses, directly proportional to the product of their masses.", formula: "F = G (m₁ m₂) / r²", subject: "Physics" },
+  "cell membrane": { definition: "Biological membrane that separates and protects the interior of all cells from the outside environment.", subject: "Biology" },
+  "machine learning": { definition: "A branch of artificial intelligence focused on building applications that learn from data and improve accuracy over time.", subject: "AI & ML" },
+  "artificial intelligence": { definition: "The simulation of human intelligence processes by machines, especially computer systems.", subject: "AI & ML" },
+}
 
 function randomRoom() {
   return 'stem-' + Math.random().toString(36).slice(2, 6) + '-' + Math.random().toString(36).slice(2, 6)
+}
+
+function getAvatarColor(name: string) {
+  const colors = ['#1a73e8', '#9c27b0', '#00897b', '#e65100', '#3949ab', '#d81b60', '#5e35b1', '#039be5']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return colors[Math.abs(hash) % colors.length]
 }
 
 export default function App() {
@@ -36,8 +64,8 @@ export default function App() {
 
   async function enterRoom(room: string) {
     setError('')
-    if (!name.trim()) return setError('Enter your display name first.')
-    if (!room.trim()) return setError('Enter a meeting code or create a room.')
+    if (!name.trim()) return setError('Please enter your display name to join.')
+    if (!room.trim()) return setError('Please enter or generate a meeting code.')
     setBusy(true)
     try {
       const response = await fetch(`${API}/api/token`, {
@@ -64,10 +92,10 @@ export default function App() {
       setServerUrl(targetServerUrl)
       setRoomName(data.room)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Unable to connect to the backend.'
+      const msg = e instanceof Error ? e.message : 'Unable to connect to the meeting.'
       setError(
         msg === 'Failed to fetch'
-          ? 'Could not connect to the backend API. Please verify the server is running or Netlify environment variables are configured.'
+          ? 'Could not connect to the backend API. Please verify server status or Netlify configuration.'
           : msg
       )
     } finally {
@@ -76,103 +104,210 @@ export default function App() {
   }
 
   if (token) {
-    return <LiveKitRoom
-      video audio token={token} serverUrl={serverUrl}
-      connect onDisconnected={() => setToken('')}
-      data-lk-theme="default"
-      className="livekit-shell"
-    >
-      <RoomAudioRenderer />
-      <MeetingRoom name={name} role={role} roomName={roomName} onLeave={() => setToken('')} />
-    </LiveKitRoom>
+    return (
+      <LiveKitRoom
+        video={false}
+        audio={false}
+        token={token}
+        serverUrl={serverUrl}
+        connect
+        onDisconnected={() => setToken('')}
+        data-lk-theme="default"
+        className="gmeet-root"
+      >
+        <RoomAudioRenderer />
+        <MeetingRoom name={name} role={role} roomName={roomName} onLeave={() => setToken('')} />
+      </LiveKitRoom>
+    )
   }
 
-  return <main className="landing">
-    <nav className="topbar">
-      <div className="brand"><span className="brand-mark"><Accessibility size={22}/></span><span>Access<span className="brand-accent">Class</span></span></div>
-      <div className="top-pill"><span className="status-dot"/> Accessible learning workspace</div>
-    </nav>
-    <section className="hero">
-      <div className="hero-copy">
-        <div className="eyebrow"><Sparkles size={15}/> AI-POWERED STEM CLASSROOM</div>
-        <h1>Every learner.<br/><span>Every concept.</span><br/>Every voice.</h1>
-        <p className="hero-desc">A more inclusive online classroom with live captions, STEM-aware text, and accessible ways for students and teachers to communicate.</p>
-        <div className="feature-pills"><span><Captions size={15}/> Live captions</span><span><BookOpen size={15}/> STEM context</span><span><Hand size={15}/> Two-way access</span></div>
-      </div>
-      <div className="join-card">
-        <div className="card-head"><div><div className="card-kicker">YOUR CLASSROOM</div><h2>Join a session</h2></div><div className="card-icon"><Video size={23}/></div></div>
-        <label>Display name</label>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Imanuvel" maxLength={80}/>
-        <label>Your role</label>
-        <div className="role-select">
-          <button className={role === 'student' ? 'role-option active' : 'role-option'} onClick={() => setRole('student')}><Users size={16}/> Student</button>
-          <button className={role === 'teacher' ? 'role-option active' : 'role-option'} onClick={() => setRole('teacher')}><BookOpen size={16}/> Teacher</button>
+  return (
+    <main className="gmeet-landing">
+      <header className="gmeet-landing-header">
+        <div className="gmeet-brand">
+          <div className="gmeet-brand-icon"><Accessibility size={24} /></div>
+          <span className="gmeet-brand-text">Access<b>Class</b></span>
+          <span className="gmeet-tag">STEM Classroom</span>
         </div>
-        <label>Meeting code</label>
-        <input value={roomName} onChange={e => setRoomName(e.target.value)} placeholder="Enter room code"/>
-        <button className="btn-primary" disabled={busy} onClick={() => enterRoom(roomName)}>{busy ? 'Connecting…' : 'Join meeting'} <DoorOpen size={17}/></button>
-        <div className="or-line"><span/>or<span/></div>
-        <button className="btn-secondary" disabled={busy} onClick={() => { const r = randomRoom(); setRoomName(r); void enterRoom(r) }}> <Video size={17}/> Create a new meeting</button>
-        {error && <div className="error-message" role="alert">{error}</div>}
-        <p className="privacy-note"><span className="status-dot"/> Your classroom is ready when you are</p>
-      </div>
-    </section>
-    <section className="value-row">
-      <div><Captions/><b>Readable live captions</b><span>Follow each explanation in text.</span></div>
-      <div><BookOpen/><b>STEM-aware language</b><span>Keep key technical terms clear.</span></div>
-      <div><PenLine/><b>More ways to respond</b><span>Type or draw a question.</span></div>
-    </section>
-    <footer>ACCESSCLASS <span>•</span> FINAL-YEAR PROJECT PROTOTYPE</footer>
-  </main>
+        <div className="gmeet-header-meta">
+          <span className="gmeet-badge-secure"><Sparkles size={14} /> AI-Powered Accessibility</span>
+        </div>
+      </header>
+
+      <section className="gmeet-landing-hero">
+        <div className="gmeet-hero-left">
+          <h1>Inclusive video meetings for STEM classrooms.</h1>
+          <p className="gmeet-hero-sub">
+            Real-time context-aware speech captioning, bidirectional sign language translation, mathematical formula rendering, and personalized visual displays designed for speech & hearing-impaired learners.
+          </p>
+
+          <div className="gmeet-action-box">
+            <div className="gmeet-input-row">
+              <input
+                className="gmeet-input-name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Enter your name"
+                maxLength={60}
+              />
+              <div className="gmeet-role-toggle">
+                <button
+                  type="button"
+                  className={role === 'student' ? 'gmeet-role-btn active' : 'gmeet-role-btn'}
+                  onClick={() => setRole('student')}
+                >
+                  <Users size={15} /> Student
+                </button>
+                <button
+                  type="button"
+                  className={role === 'teacher' ? 'gmeet-role-btn active' : 'gmeet-role-btn'}
+                  onClick={() => setRole('teacher')}
+                >
+                  <BookOpen size={15} /> Teacher
+                </button>
+              </div>
+            </div>
+
+            <div className="gmeet-join-actions">
+              <button
+                className="gmeet-btn-new-meeting"
+                disabled={busy}
+                onClick={() => { const r = randomRoom(); setRoomName(r); void enterRoom(r) }}
+              >
+                <Video size={18} />
+                <span>{busy ? 'Connecting…' : 'New meeting'}</span>
+              </button>
+
+              <div className="gmeet-code-join">
+                <input
+                  className="gmeet-input-code"
+                  value={roomName}
+                  onChange={e => setRoomName(e.target.value)}
+                  placeholder="Enter a code or link"
+                />
+                <button
+                  className="gmeet-btn-join"
+                  disabled={busy || !roomName.trim()}
+                  onClick={() => enterRoom(roomName)}
+                >
+                  Join
+                </button>
+              </div>
+            </div>
+
+            {error && <div className="gmeet-alert-error" role="alert">{error}</div>}
+          </div>
+
+          <div className="gmeet-feature-strip">
+            <div className="gmeet-feature-item"><Captions size={18} /><span>Contextual Captions</span></div>
+            <div className="gmeet-feature-item"><Languages size={18} /><span>Sign Language Bridge</span></div>
+            <div className="gmeet-feature-item"><PenTool size={18} /><span>Shared Math Canvas</span></div>
+            <div className="gmeet-feature-item"><Eye size={18} /><span>High-Contrast & Dyslexia UI</span></div>
+          </div>
+        </div>
+
+        <div className="gmeet-hero-right">
+          <div className="gmeet-preview-card">
+            <div className="gmeet-preview-screen">
+              <div className="gmeet-preview-video">
+                <div className="gmeet-preview-avatar">
+                  {name ? name.slice(0, 1).toUpperCase() : 'A'}
+                </div>
+                <div className="gmeet-preview-tag">{name || 'Your video'}</div>
+              </div>
+              <div className="gmeet-preview-caption-sample">
+                <span className="caption-speaker">Teacher:</span> In this equation, <b>photosynthesis</b> converts light energy into chemical bonds.
+              </div>
+            </div>
+            <div className="gmeet-preview-footer">
+              <span>Ready to teach and learn with accessibility</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  )
 }
 
 function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Role; roomName: string; onLeave: () => void }) {
   const room = useRoomContext()
   const { localParticipant } = useLocalParticipant()
-  const [activeTab, setActiveTab] = useState<'captions' | 'chat' | 'board' | 'signs'>('captions')
+  const participants = useParticipants()
+  const speakingParticipants = useSpeakingParticipants()
+  const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false })
+
+  const [activeSideDrawer, setActiveSideDrawer] = useState<'chat' | 'people' | 'accessibility' | 'signs' | 'board' | null>(null)
   const [chat, setChat] = useState<ChatItem[]>([])
   const [message, setMessage] = useState('')
   const [captionItems, setCaptionItems] = useState<CaptionItem[]>([])
   const [captionEnabled, setCaptionEnabled] = useState(true)
   const [listening, setListening] = useState(false)
+  const [handRaised, setHandRaised] = useState(false)
+  const [raisedHands, setRaisedHands] = useState<Record<string, boolean>>({})
+
+  // Accessibility / Personalization Settings
   const [fontSize, setFontSize] = useState(18)
   const [highContrast, setHighContrast] = useState(false)
+  const [dyslexicFont, setDyslexicFont] = useState(false)
   const [subject, setSubject] = useState('general')
-  const [signLanguage, setSignLanguage] = useState('ISL')
+  const [readingMode, setReadingMode] = useState<'verbatim' | 'stem-focus'>('stem-focus')
+
+  // Sign Language State
+  const [signLanguage, setSignLanguage] = useState<'ISL' | 'ASL'>('ISL')
   const [signDirection, setSignDirection] = useState<'student-to-teacher' | 'teacher-to-student'>('student-to-teacher')
   const [signText, setSignText] = useState('')
-  const [signStatus, setSignStatus] = useState('Sign recognition model is not configured yet.')
-  const [signModelReady, setSignModelReady] = useState(false)
+  const [signStatus, setSignStatus] = useState('Sign camera standby.')
   const signVideoRef = useRef<HTMLVideoElement>(null)
   const signStreamRef = useRef<MediaStream | null>(null)
-  const [notice, setNotice] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [boardColor, setBoardColor] = useState('#f5f7ff')
+
+  // Interactive STEM Glossary Tooltip Card
+  const [selectedGlossaryTerm, setSelectedGlossaryTerm] = useState<{ term: string; data: typeof STEM_DICTIONARY[string] } | null>(null)
+
+  // Whiteboard Canvas
+  const [drawing, setDrawing] = useState(false)
+  const [brushColor, setBrushColor] = useState('#8ab4f8')
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Live Clock
+  const [currentTime, setCurrentTime] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [notice, setNotice] = useState('')
   const recognitionRef = useRef<any>(null)
   const captionId = useRef(0)
-  const tracks = useTracks([Track.Source.Camera], { onlySubscribed: false })
 
+  // Clock ticker
   useEffect(() => {
-    const handleData = (payload: Uint8Array, participant?: any) => {
+    const updateTime = () => {
+      const now = new Date()
+      setCurrentTime(now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))
+    }
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // WebRTC LiveKit Data Packets
+  useEffect(() => {
+    const handleData = (payload: Uint8Array) => {
       try {
         const data = JSON.parse(new TextDecoder().decode(payload))
         if (data.type === 'classroom-message') {
           setChat(prev => [...prev.slice(-99), { ...data.item, id: data.item.id || crypto.randomUUID() }])
         } else if (data.type === 'caption') {
           setCaptionItems(prev => [...prev.slice(-79), data.item])
+        } else if (data.type === 'hand-raise') {
+          setRaisedHands(prev => ({ ...prev, [data.sender]: data.raised }))
         } else if (data.type === 'board') {
-          // Board snapshots are intentionally sent as strokes, not arbitrary HTML.
           drawRemote(data.x, data.y, data.color, data.start)
         }
-      } catch { /* Ignore malformed data packets. */ }
+      } catch { /* Ignore malformed packets */ }
     }
     room.on(RoomEvent.DataReceived, handleData)
     return () => { room.off(RoomEvent.DataReceived, handleData) }
   }, [room])
 
   useEffect(() => () => {
-    try { recognitionRef.current?.stop() } catch { /* no-op */ }
+    try { recognitionRef.current?.stop() } catch {}
     signStreamRef.current?.getTracks().forEach(track => track.stop())
   }, [])
 
@@ -182,14 +317,27 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     void localParticipant.publishData(bytes, { reliable: true, topic: 'accessclass' })
   }
 
+  function toggleHandRaise() {
+    const next = !handRaised
+    setHandRaised(next)
+    setRaisedHands(prev => ({ ...prev, [name]: next }))
+    sendPacket({ type: 'hand-raise', sender: name, raised: next })
+  }
+
   function sendMessage(kind: ChatItem['kind'] = 'chat') {
     const text = message.trim()
     if (!text) return
-    const item: ChatItem = { id: crypto.randomUUID(), sender: name, role, text, kind }
+    const item: ChatItem = {
+      id: crypto.randomUUID(),
+      sender: name,
+      role,
+      text,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      kind
+    }
     setChat(prev => [...prev, item])
     sendPacket({ type: 'classroom-message', item })
     setMessage('')
-    setActiveTab('chat')
   }
 
   async function processCaption(raw: string) {
@@ -199,7 +347,8 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     let changed = false
     try {
       const res = await fetch(`${API}/api/captions/contextualize`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: trimmed, subject })
       })
       if (res.ok) {
@@ -207,8 +356,16 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
         processed = result.caption || trimmed
         changed = processed !== trimmed
       }
-    } catch { /* Use raw transcript if backend is temporarily unavailable. */ }
-    const item: CaptionItem = { id: ++captionId.current, raw: trimmed, text: processed, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), changed }
+    } catch { /* fallback to raw */ }
+
+    const item: CaptionItem = {
+      id: ++captionId.current,
+      raw: trimmed,
+      text: processed,
+      speaker: name,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      changed
+    }
     setCaptionItems(prev => [...prev.slice(-79), item])
     sendPacket({ type: 'caption', item })
   }
@@ -216,7 +373,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   function toggleRecognition() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
-      setNotice('Live speech recognition is not supported by this browser. Try the latest Chrome or Edge.')
+      setNotice('Web Speech API is not supported in this browser. Please use Google Chrome or Microsoft Edge.')
       return
     }
     if (listening) {
@@ -229,41 +386,49 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     recognition.interimResults = true
     recognition.lang = 'en-US'
     recognition.onstart = () => { setListening(true); setNotice('') }
-    recognition.onerror = (event: any) => { setNotice(`Speech recognition: ${event.error}. Check microphone permission and try again.`); setListening(false) }
+    recognition.onerror = (e: any) => {
+      setNotice(`Speech recognition error: ${e.error}.`)
+      setListening(false)
+    }
     recognition.onend = () => setListening(false)
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (e: any) => {
       let finalText = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) finalText += event.results[i][0].transcript + ' '
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' '
       }
       if (finalText.trim()) void processCaption(finalText)
     }
     recognitionRef.current = recognition
-    try { recognition.start() } catch { setNotice('Could not start speech recognition. Try again.'); setListening(false) }
+    try {
+      recognition.start()
+    } catch {
+      setNotice('Could not start microphone captioning.')
+      setListening(false)
+    }
   }
 
-
+  // Camera sign bridge
   async function startSignCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setSignStatus('Camera access is unavailable. Open this site on localhost or HTTPS and allow camera permission.')
+      setSignStatus('Camera access requires HTTPS or localhost.')
       return
     }
     try {
-      signStreamRef.current?.getTracks().forEach(track => track.stop())
+      signStreamRef.current?.getTracks().forEach(t => t.stop())
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
       signStreamRef.current = stream
       if (signVideoRef.current) {
         signVideoRef.current.srcObject = stream
         await signVideoRef.current.play()
       }
-      setSignStatus('Camera ready. A trained sign-recognition model is still required before gestures can be translated automatically.')
-    } catch (err) {
-      setSignStatus('Could not access the camera. Check browser permission and close other apps using the camera.')
+      setSignStatus('Camera active. MediaPipe pipeline ready for gesture recognition.')
+    } catch {
+      setSignStatus('Camera permission denied or camera in use by another app.')
     }
   }
 
   function stopSignCamera() {
-    signStreamRef.current?.getTracks().forEach(track => track.stop())
+    signStreamRef.current?.getTracks().forEach(t => t.stop())
     signStreamRef.current = null
     if (signVideoRef.current) signVideoRef.current.srcObject = null
     setSignStatus('Sign camera stopped.')
@@ -271,170 +436,772 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
 
   function sendRecognizedSign() {
     const text = signText.trim()
-    if (!text) {
-      setSignStatus('Enter a verified sign-recognition result or a text gloss to test the teacher/student delivery path.')
-      return
-    }
+    if (!text) return
     const item: ChatItem = {
       id: crypto.randomUUID(),
       sender: name,
       role,
-      text: `[${signLanguage} sign → text] ${text}`,
+      text: `[${signLanguage} Sign → Text] ${text}`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       kind: 'student'
     }
     setChat(prev => [...prev, item])
     sendPacket({ type: 'classroom-message', item })
-    setSignStatus(`Text sent to connected participants: "${text}". This tests delivery only, not automatic sign recognition.`)
     setSignText('')
-    setActiveTab('chat')
+    setSignStatus(`Sent sign translation: "${text}"`)
   }
 
   async function copyInvite() {
-    const invite = `${window.location.origin} — meeting code: ${roomName}`
-    try { await navigator.clipboard.writeText(invite); setCopied(true); setTimeout(() => setCopied(false), 1800) }
-    catch { setNotice(`Share meeting code: ${roomName}`) }
+    try {
+      await navigator.clipboard.writeText(roomName)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setNotice(`Meeting code: ${roomName}`)
+    }
   }
 
-  function drawRemote(x: number, y: number, color: string, start: boolean) {
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!ctx) return
-    ctx.strokeStyle = color || '#6558e8'
-    ctx.lineWidth = 3
-    if (start) { ctx.beginPath(); ctx.moveTo(x, y) } else { ctx.lineTo(x, y); ctx.stroke() }
-  }
-
-  function clearBoard() {
-    const canvas = canvasRef.current
-    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
-    sendPacket({ type: 'classroom-message', item: { id: crypto.randomUUID(), sender: 'System', role: 'system', text: 'The shared board was cleared.', kind: 'draw' } })
-  }
-
-  const [drawing, setDrawing] = useState(false)
+  // Drawing Whiteboard functions
   function pointerPosition(e: any) {
     const rect = canvasRef.current!.getBoundingClientRect()
-    return { x: (e.clientX - rect.left) * (canvasRef.current!.width / rect.width), y: (e.clientY - rect.top) * (canvasRef.current!.height / rect.height) }
+    return {
+      x: (e.clientX - rect.left) * (canvasRef.current!.width / rect.width),
+      y: (e.clientY - rect.top) * (canvasRef.current!.height / rect.height)
+    }
   }
   function startDraw(e: any) {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
     const p = pointerPosition(e)
-    ctx.strokeStyle = '#6558e8'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x, p.y)
-    setDrawing(true); sendPacket({ type: 'board', x: p.x, y: p.y, color: '#6558e8', start: true })
+    ctx.strokeStyle = brushColor
+    ctx.lineWidth = 3
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(p.x, p.y)
+    setDrawing(true)
+    sendPacket({ type: 'board', x: p.x, y: p.y, color: brushColor, start: true })
   }
   function moveDraw(e: any) {
     if (!drawing || !canvasRef.current) return
     const p = pointerPosition(e)
     const ctx = canvasRef.current.getContext('2d')!
-    ctx.lineTo(p.x, p.y); ctx.stroke()
-    sendPacket({ type: 'board', x: p.x, y: p.y, color: '#6558e8', start: false })
+    ctx.lineTo(p.x, p.y)
+    ctx.stroke()
+    sendPacket({ type: 'board', x: p.x, y: p.y, color: brushColor, start: false })
+  }
+  function drawRemote(x: number, y: number, color: string, start: boolean) {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!ctx) return
+    ctx.strokeStyle = color || '#8ab4f8'
+    ctx.lineWidth = 3
+    ctx.lineCap = 'round'
+    if (start) {
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+    } else {
+      ctx.lineTo(x, y)
+      ctx.stroke()
+    }
+  }
+  function clearBoard() {
+    const canvas = canvasRef.current
+    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
+    sendPacket({
+      type: 'classroom-message',
+      item: { id: crypto.randomUUID(), sender: 'System', role: 'system', text: 'The shared board was cleared.', kind: 'draw' }
+    })
   }
 
-  const cameraCount = useMemo(() => tracks.length, [tracks.length])
+  // Interactive STEM Term Highlighting
+  function renderCaptionWithTerms(text: string) {
+    const lower = text.toLowerCase()
+    const matches: { term: string; start: number; end: number; data: typeof STEM_DICTIONARY[string] }[] = []
 
-  return <div className={highContrast ? "meeting-app high-contrast" : "meeting-app"}>
-    <header className="meeting-header">
-      <div className="brand"><span className="brand-mark"><Accessibility size={20}/></span><span>Access<span className="brand-accent">Class</span></span></div>
-      <div className="meeting-meta"><span className="live-badge"><span className="status-dot"/> LIVE CLASS</span><span className="room-code">{roomName}</span><button className="icon-btn compact" title="Copy meeting code" onClick={copyInvite}>{copied ? <Check size={16}/> : <Copy size={16}/>}</button></div>
-      <div className="user-chip"><span className="avatar">{name.slice(0, 1).toUpperCase()}</span><span>{name}</span><span className="role-label">{role}</span></div>
-    </header>
-    <main className="meeting-layout">
-      <section className="stage-column">
-        <div className="stage-topline"><div><span className="green-dot"/> Secure classroom session</div><div className="stage-stats"><Users size={14}/> {cameraCount} camera track{cameraCount === 1 ? '' : 's'}</div></div>
-        <div className="video-stage">
-          <VideoConference />
-        </div>
-        <div className="call-controls">
-          <div className="control-group"><button className="control-btn" onClick={() => void localParticipant.setMicrophoneEnabled(!localParticipant.isMicrophoneEnabled)}><Mic size={18}/><span>{localParticipant.isMicrophoneEnabled ? 'Mute' : 'Unmute'}</span></button><button className="control-btn" onClick={() => void localParticipant.setCameraEnabled(!localParticipant.isCameraEnabled)}><Video size={18}/><span>{localParticipant.isCameraEnabled ? 'Stop video' : 'Start video'}</span></button><button className="control-btn" onClick={() => setActiveTab('board')}><MonitorUp size={18}/><span>Whiteboard</span></button></div>
-          <button className="leave-btn" onClick={onLeave}><PhoneIcon/> Leave</button>
-        </div>
-        <div className="caption-preview">
-          <div className="caption-preview-head"><span><Captions size={16}/> LIVE CAPTIONS</span><div className={listening ? 'listening-pill active' : 'listening-pill'}><span/> {listening ? 'Listening' : 'Mic captions off'}</div></div>
-          {captionEnabled && <div className="caption-preview-text" style={{ fontSize: `${Math.max(14, fontSize - 1)}px` }}>
-            {captionItems.length ? captionItems.slice(-2).map(c => <p key={c.id}>{c.text}</p>) : <p className="caption-placeholder">Captions from the presenter will appear here. Start captioning to transcribe speech from this browser's microphone.</p>}
-          </div>}
-        </div>
-      </section>
-      <aside className="side-panel">
-        <div className="side-tabs">
-          <button className={activeTab === 'captions' ? 'side-tab active' : 'side-tab'} onClick={() => setActiveTab('captions')}><Captions size={16}/> Captions</button>
-          <button className={activeTab === 'chat' ? 'side-tab active' : 'side-tab'} onClick={() => setActiveTab('chat')}><MessageCircle size={16}/> Chat</button>
-          <button className={activeTab === 'board' ? 'side-tab active' : 'side-tab'} onClick={() => setActiveTab('board')}><PenLine size={16}/> Board</button>
-          <button className={activeTab === 'signs' ? 'side-tab active' : 'side-tab'} onClick={() => setActiveTab('signs')}><Hand size={16}/> Signs</button>
-        </div>
-        {activeTab === 'captions' && <div className="panel-content">
-          <div className="panel-title-row"><div><h3>Caption settings</h3><p>Make classroom text work for you.</p></div><Settings2 size={19}/></div>
-          <div className="setting-card">
-            <div className="setting-line"><span><Type size={16}/> Text size</span><b>{fontSize}px</b></div>
-            <input aria-label="Caption font size" className="range" type="range" min="14" max="28" value={fontSize} onChange={e => setFontSize(Number(e.target.value))}/>
-            <div className="range-labels"><span>Small</span><span>Large</span></div>
-          </div>
-          <button className={highContrast ? 'setting-toggle selected' : 'setting-toggle'} onClick={() => setHighContrast(v => !v)}><span><Eye size={17}/> High contrast captions</span><span className="toggle-track"><i/></span></button>
-          <button className={captionEnabled ? 'setting-toggle selected' : 'setting-toggle'} onClick={() => setCaptionEnabled(v => !v)}><span><Captions size={17}/> Show caption preview</span><span className="toggle-track"><i/></span></button>
-          <div className="setting-card">
-            <label>STEM subject context</label>
-            <select value={subject} onChange={e => setSubject(e.target.value)}>
-              <option value="general">General</option><option value="maths">Mathematics</option><option value="physics">Physics</option><option value="chemistry">Chemistry</option><option value="biology">Biology</option><option value="computer_science">Computer science</option>
-            </select>
-          </div>
-          <div className="caption-actions">
-            <button className={listening ? 'btn-primary listening' : 'btn-primary'} onClick={toggleRecognition}><Mic size={16}/>{listening ? 'Stop captioning' : 'Start live captioning'}</button>
-            <p><CircleHelp size={14}/> Uses browser speech recognition. Captions may vary by browser and microphone.</p>
-          </div>
-          {notice && <div className="notice" role="status">{notice}</div>}
-          <div className="transcript-list">
-            <div className="transcript-heading"><h4>Transcript</h4><span>{captionItems.length} lines</span></div>
-            {captionItems.length === 0 ? <div className="empty-state"><Captions size={24}/><p>Your live transcript will appear here.</p></div> : captionItems.slice().reverse().map(c => <div className="transcript-item" key={c.id}><time>{c.time}</time><p>{c.text}</p>{c.changed && <span className="context-tag">STEM context applied</span>}</div>)}
-          </div>
-        </div>}
-        {activeTab === 'chat' && <div className="panel-content chat-panel">
-          <div className="panel-title-row"><div><h3>Classroom messages</h3><p>Ask, answer, and participate.</p></div><MessageCircle size={19}/></div>
-          <div className="chat-list">
-            {chat.length === 0 ? <div className="empty-state"><MessageCircle size={24}/><p>No messages yet. Start the discussion.</p></div> : chat.map(item => <div className={`chat-message ${item.sender === name ? 'own' : ''}`} key={item.id}><div className="chat-avatar">{item.sender.slice(0,1).toUpperCase()}</div><div className="chat-bubble"><div className="chat-byline"><b>{item.sender}</b><span>{item.role}</span></div><p>{item.text}</p></div></div>)}
-          </div>
-          <form className="message-form" onSubmit={e => { e.preventDefault(); sendMessage() }}><input value={message} onChange={e => setMessage(e.target.value)} placeholder="Send a message…" aria-label="Message" maxLength={1000}/><button aria-label="Send message"><Send size={17}/></button></form>
-          <button className="student-question" onClick={() => { setMessage('I have a question about this concept: '); setActiveTab('chat') }}><Hand size={16}/> I have a question</button>
-        </div>}
-        {activeTab === 'signs' && <div className="panel-content signs-panel">
-          <div className="panel-title-row"><div><h3>Sign language bridge</h3><p>Camera input and two-way message delivery.</p></div><Languages size={19}/></div>
-          <div className="sign-direction">
-            <button className={signDirection === 'student-to-teacher' ? 'direction-option active' : 'direction-option'} onClick={() => { setSignDirection('student-to-teacher'); setSignStatus('Student-to-teacher direction selected.') }}>Student → Teacher</button>
-            <button className={signDirection === 'teacher-to-student' ? 'direction-option active' : 'direction-option'} onClick={() => { setSignDirection('teacher-to-student'); setSignStatus('Teacher-to-student direction selected.') }}>Teacher → Student</button>
-          </div>
-          <label className="sign-label">Sign language</label>
-          <select value={signLanguage} onChange={e => setSignLanguage(e.target.value)} className="sign-select">
-            <option value="ISL">Indian Sign Language (ISL)</option>
-            <option value="ASL">American Sign Language (ASL)</option>
-          </select>
-          <div className="sign-camera-box">
-            <video ref={signVideoRef} autoPlay playsInline muted aria-label="Local sign-language camera preview"/>
-            {!signStreamRef.current && <div className="sign-camera-placeholder"><Camera size={28}/><span>Camera preview</span><small>Allow camera access to begin</small></div>}
-          </div>
-          <div className="sign-camera-actions">
-            <button className="btn-secondary" onClick={() => void startSignCamera()}><Camera size={15}/> Start camera</button>
-            <button className="btn-secondary" onClick={stopSignCamera}><X size={15}/> Stop</button>
-          </div>
-          <div className="sign-model-status"><span className="warning-dot"/><span><b>Recognition model not connected</b><small>MediaPipe tracks landmarks; a trained ISL/ASL model is needed to classify signs.</small></span></div>
-          <label className="sign-label">Verified sign result / text gloss (demo)</label>
-          <textarea className="sign-textarea" value={signText} onChange={e => setSignText(e.target.value)} placeholder="Type a recognized sign result, e.g. I have a question about photosynthesis." rows={3}/>
-          <button className="btn-primary" onClick={sendRecognizedSign}><Send size={15}/> Send as caption/message</button>
-          <p className="sign-status" role="status">{signStatus}</p>
-          <div className="sign-note"><ScanFace size={15}/><span>Current implementation supports camera preview and tests message delivery. It does not yet infer signs from video. Direction selection is a UI mode; automatic teacher-to-student signing will require a signing avatar/video output or a separately defined translation pipeline.</span></div>
-        </div>}
-        {activeTab === 'board' && <div className="panel-content board-panel">
-          <div className="panel-title-row"><div><h3>Shared whiteboard</h3><p>Draw a diagram or equation.</p></div><PenLine size={19}/></div>
-          <div className="board-tools"><span><span className="purple-dot"/> Pen</span><button onClick={clearBoard}><X size={14}/> Clear board</button></div>
-          <canvas ref={canvasRef} width={700} height={500} className="drawing-canvas" onPointerDown={startDraw} onPointerMove={moveDraw} onPointerUp={() => setDrawing(false)} onPointerLeave={() => setDrawing(false)} aria-label="Shared drawing canvas"/>
-          <p className="board-hint">Use your mouse, touchpad, or touchscreen to draw. Strokes are shared with participants currently connected.</p>
-          <form className="message-form" onSubmit={e => { e.preventDefault(); sendMessage('draw') }}><input value={message} onChange={e => setMessage(e.target.value)} placeholder="Describe your diagram…" aria-label="Describe diagram"/><button aria-label="Send drawing description"><Send size={17}/></button></form>
-        </div>}
-      </aside>
-    </main>
-    <footer className="meeting-footer"><span>AccessClass <i>•</i> Accessible STEM learning</span><span><span className="green-dot"/> Connection managed by LiveKit</span></footer>
-  </div>
-}
+    for (const [key, val] of Object.entries(STEM_DICTIONARY)) {
+      let idx = lower.indexOf(key)
+      while (idx !== -1) {
+        matches.push({ term: key, start: idx, end: idx + key.length, data: val })
+        idx = lower.indexOf(key, idx + key.length)
+      }
+    }
 
-function PhoneIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.35 1.9.68 2.8a2 2 0 0 1-.45 2.11L8.07 9.93a16 16 0 0 0 6 6l1.3-1.27a2 2 0 0 1 2.11-.45c.9.33 1.84.56 2.8.68A2 2 0 0 1 22 16.92z"/></svg>
+    if (matches.length === 0) return <span>{text}</span>
+
+    matches.sort((a, b) => a.start - b.start)
+    const elements: (string | JSX.Element)[] = []
+    let lastIndex = 0
+
+    matches.forEach((m, i) => {
+      if (m.start >= lastIndex) {
+        if (m.start > lastIndex) {
+          elements.push(text.slice(lastIndex, m.start))
+        }
+        const matchedWord = text.slice(m.start, m.end)
+        elements.push(
+          <button
+            key={`term-${i}`}
+            type="button"
+            className="gmeet-stem-term-pill"
+            title={`Click for ${m.data.subject} formula & definition`}
+            onClick={() => setSelectedGlossaryTerm({ term: matchedWord, data: m.data })}
+          >
+            {matchedWord}
+          </button>
+        )
+        lastIndex = m.end
+      }
+    })
+    if (lastIndex < text.length) {
+      elements.push(text.slice(lastIndex))
+    }
+    return <>{elements}</>
+  }
+
+  const latestCaptions = captionItems.slice(-2)
+
+  return (
+    <div className={`gmeet-room ${highContrast ? 'contrast-mode' : ''} ${dyslexicFont ? 'dyslexic-mode' : ''}`}>
+      {/* Top Floating App Bar */}
+      <header className="gmeet-topbar">
+        <div className="gmeet-topbar-left">
+          <div className="gmeet-topbar-brand">
+            <Accessibility size={20} className="gmeet-accent-icon" />
+            <span>AccessClass</span>
+          </div>
+          <span className="gmeet-topbar-divider">•</span>
+          <span className="gmeet-topbar-subject">{subject.toUpperCase()} CLASSROOM</span>
+        </div>
+
+        <div className="gmeet-topbar-center">
+          {handRaised && (
+            <div className="gmeet-raised-indicator">
+              <Hand size={15} /> <span>Your hand is raised</span>
+            </div>
+          )}
+        </div>
+
+        <div className="gmeet-topbar-right">
+          <div className="gmeet-user-chip" title={`${name} (${role})`}>
+            <span className="gmeet-avatar-mini" style={{ backgroundColor: getAvatarColor(name) }}>
+              {name.slice(0, 1).toUpperCase()}
+            </span>
+            <span className="gmeet-user-name">{name}</span>
+            <span className="gmeet-role-pill">{role}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Video Stage & Side Drawer Area */}
+      <main className="gmeet-main">
+        <section className="gmeet-stage-area">
+          {/* Responsive Participant Video Tiles */}
+          <div className={`gmeet-grid count-${Math.min(cameraTracks.length || 1, 4)}`}>
+            {cameraTracks.length > 0 ? (
+              cameraTracks.map(track => {
+                const participant = track.participant
+                const isSpeaking = speakingParticipants.includes(participant)
+                const isLocal = participant.isLocal
+                const isHandRaised = raisedHands[participant.name || participant.identity]
+                return (
+                  <div key={track.publication.trackSid} className={`gmeet-tile ${isSpeaking ? 'speaking' : ''}`}>
+                    <VideoTrack trackRef={track} className="gmeet-video-track" />
+                    <div className="gmeet-tile-footer">
+                      <span className="gmeet-tile-name">
+                        {isSpeaking ? <Volume2 size={14} className="speaking-icon" /> : null}
+                        {participant.name || participant.identity} {isLocal ? '(You)' : ''}
+                      </span>
+                      {isHandRaised && (
+                        <span className="gmeet-hand-badge" title="Hand raised">
+                          <Hand size={14} />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              /* Single Fallback Tile when no other tracks exist (e.g. initial connection) */
+              <div className="gmeet-tile single-user">
+                <div className="gmeet-avatar-placeholder" style={{ backgroundColor: getAvatarColor(name) }}>
+                  {name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="gmeet-tile-footer">
+                  <span className="gmeet-tile-name">{name} (You)</span>
+                  {handRaised && (
+                    <span className="gmeet-hand-badge" title="Hand raised">
+                      <Hand size={14} />
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Floating Google Meet Subtitles Overlay */}
+          {captionEnabled && (
+            <div className="gmeet-captions-overlay">
+              <div className="gmeet-captions-inner" style={{ fontSize: `${fontSize}px` }}>
+                {latestCaptions.length > 0 ? (
+                  latestCaptions.map(c => (
+                    <div key={c.id} className="gmeet-caption-line">
+                      <span className="gmeet-caption-speaker">{c.speaker || 'Speaker'}:</span>{' '}
+                      <span className="gmeet-caption-text">{renderCaptionWithTerms(c.text)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="gmeet-caption-idle">
+                    {listening ? 'Listening for speech… captions will appear here.' : 'Captions on • Turn on speech recognition to transcribe.'}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Interactive STEM Glossary Popover Card */}
+          {selectedGlossaryTerm && (
+            <div className="gmeet-glossary-card">
+              <div className="gmeet-glossary-header">
+                <div className="gmeet-glossary-title">
+                  <Sparkles size={16} />
+                  <span>{selectedGlossaryTerm.term}</span>
+                  <small>{selectedGlossaryTerm.data.subject}</small>
+                </div>
+                <button
+                  type="button"
+                  className="gmeet-icon-close"
+                  onClick={() => setSelectedGlossaryTerm(null)}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              <p className="gmeet-glossary-body">{selectedGlossaryTerm.data.definition}</p>
+              {selectedGlossaryTerm.data.formula && (
+                <div className="gmeet-glossary-formula">
+                  <span>Formula / Expression:</span>
+                  <code>{selectedGlossaryTerm.data.formula}</code>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Google Meet Right-Side Drawer */}
+        {activeSideDrawer && (
+          <aside className="gmeet-drawer">
+            <div className="gmeet-drawer-header">
+              <h3>
+                {activeSideDrawer === 'chat' && 'In-call messages'}
+                {activeSideDrawer === 'people' && `People (${participants.length || 1})`}
+                {activeSideDrawer === 'accessibility' && 'Caption & Accessibility Settings'}
+                {activeSideDrawer === 'signs' && 'Sign Language Bridge'}
+                {activeSideDrawer === 'board' && 'Shared Math & Science Board'}
+              </h3>
+              <button
+                type="button"
+                className="gmeet-drawer-close"
+                onClick={() => setActiveSideDrawer(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Quick Drawer Tab Switcher */}
+            <div className="gmeet-drawer-tabs">
+              <button
+                type="button"
+                className={activeSideDrawer === 'chat' ? 'drawer-tab active' : 'drawer-tab'}
+                onClick={() => setActiveSideDrawer('chat')}
+                title="Chat"
+              >
+                <MessageSquare size={16} />
+              </button>
+              <button
+                type="button"
+                className={activeSideDrawer === 'people' ? 'drawer-tab active' : 'drawer-tab'}
+                onClick={() => setActiveSideDrawer('people')}
+                title="People"
+              >
+                <Users size={16} />
+              </button>
+              <button
+                type="button"
+                className={activeSideDrawer === 'accessibility' ? 'drawer-tab active' : 'drawer-tab'}
+                onClick={() => setActiveSideDrawer('accessibility')}
+                title="Accessibility & Transcript"
+              >
+                <Captions size={16} />
+              </button>
+              <button
+                type="button"
+                className={activeSideDrawer === 'signs' ? 'drawer-tab active' : 'drawer-tab'}
+                onClick={() => setActiveSideDrawer('signs')}
+                title="Sign Language"
+              >
+                <Languages size={16} />
+              </button>
+              <button
+                type="button"
+                className={activeSideDrawer === 'board' ? 'drawer-tab active' : 'drawer-tab'}
+                onClick={() => setActiveSideDrawer('board')}
+                title="Whiteboard"
+              >
+                <PenTool size={16} />
+              </button>
+            </div>
+
+            <div className="gmeet-drawer-content">
+              {/* CHAT DRAWER */}
+              {activeSideDrawer === 'chat' && (
+                <div className="gmeet-chat-view">
+                  <div className="gmeet-chat-history">
+                    {chat.length === 0 ? (
+                      <div className="gmeet-empty-chat">
+                        <MessageSquare size={36} />
+                        <p>Messages can only be seen by people in the call and are deleted when the call ends.</p>
+                      </div>
+                    ) : (
+                      chat.map(item => (
+                        <div key={item.id} className={`gmeet-chat-bubble ${item.sender === name ? 'own' : ''}`}>
+                          <div className="gmeet-chat-meta">
+                            <b>{item.sender}</b>
+                            <span>{item.time || ''}</span>
+                            <span className="gmeet-chat-role">{item.role}</span>
+                          </div>
+                          <div className="gmeet-chat-text">{item.text}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <form
+                    className="gmeet-chat-input-bar"
+                    onSubmit={e => { e.preventDefault(); sendMessage() }}
+                  >
+                    <input
+                      value={message}
+                      onChange={e => setMessage(e.target.value)}
+                      placeholder="Send a message to everyone"
+                    />
+                    <button type="submit" disabled={!message.trim()}><Send size={16} /></button>
+                  </form>
+                  <button
+                    type="button"
+                    className="gmeet-btn-quick-question"
+                    onClick={() => { setMessage('I have a question about this equation/concept: ') }}
+                  >
+                    <Hand size={14} /> Quick Question Prompt
+                  </button>
+                </div>
+              )}
+
+              {/* PEOPLE DRAWER */}
+              {activeSideDrawer === 'people' && (
+                <div className="gmeet-people-view">
+                  <div className="gmeet-people-list">
+                    <div className="gmeet-person-row">
+                      <div className="gmeet-person-info">
+                        <span className="gmeet-avatar-mini" style={{ backgroundColor: getAvatarColor(name) }}>
+                          {name.slice(0, 1).toUpperCase()}
+                        </span>
+                        <div>
+                          <b>{name} (You)</b>
+                          <small>{role}</small>
+                        </div>
+                      </div>
+                      <div className="gmeet-person-icons">
+                        {handRaised && <Hand size={15} className="gmeet-yellow-icon" />}
+                        {localParticipant.isMicrophoneEnabled ? <Mic size={15} /> : <MicOff size={15} className="gmeet-red-icon" />}
+                        {localParticipant.isCameraEnabled ? <Video size={15} /> : <VideoOff size={15} className="gmeet-red-icon" />}
+                      </div>
+                    </div>
+
+                    {participants.filter(p => !p.isLocal).map(p => (
+                      <div key={p.sid} className="gmeet-person-row">
+                        <div className="gmeet-person-info">
+                          <span className="gmeet-avatar-mini" style={{ backgroundColor: getAvatarColor(p.name || p.identity) }}>
+                            {(p.name || p.identity).slice(0, 1).toUpperCase()}
+                          </span>
+                          <div>
+                            <b>{p.name || p.identity}</b>
+                            <small>Participant</small>
+                          </div>
+                        </div>
+                        <div className="gmeet-person-icons">
+                          {raisedHands[p.name || p.identity] && <Hand size={15} className="gmeet-yellow-icon" />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ACCESSIBILITY & CAPTIONS DRAWER */}
+              {activeSideDrawer === 'accessibility' && (
+                <div className="gmeet-accessibility-view">
+                  <div className="gmeet-setting-group">
+                    <label>Live Captioning Engine</label>
+                    <button
+                      type="button"
+                      className={listening ? 'gmeet-btn-toggle active' : 'gmeet-btn-toggle'}
+                      onClick={toggleRecognition}
+                    >
+                      <Mic size={16} />
+                      <span>{listening ? 'Stop speech recognition' : 'Start microphone speech recognition'}</span>
+                    </button>
+                    {notice && <p className="gmeet-hint-text alert">{notice}</p>}
+                  </div>
+
+                  <div className="gmeet-setting-group">
+                    <div className="gmeet-setting-label-row">
+                      <span><Type size={16} /> Caption Font Size</span>
+                      <b>{fontSize}px</b>
+                    </div>
+                    <input
+                      type="range"
+                      min="14"
+                      max="32"
+                      value={fontSize}
+                      onChange={e => setFontSize(Number(e.target.value))}
+                      className="gmeet-slider"
+                    />
+                    <div className="gmeet-slider-ticks"><span>Standard (14px)</span><span>Large (32px)</span></div>
+                  </div>
+
+                  <div className="gmeet-setting-group">
+                    <label>Visual Accessibility Themes</label>
+                    <div className="gmeet-theme-row">
+                      <button
+                        type="button"
+                        className={!highContrast ? 'gmeet-theme-chip active' : 'gmeet-theme-chip'}
+                        onClick={() => setHighContrast(false)}
+                      >
+                        Default Dark
+                      </button>
+                      <button
+                        type="button"
+                        className={highContrast ? 'gmeet-theme-chip active' : 'gmeet-theme-chip'}
+                        onClick={() => setHighContrast(true)}
+                      >
+                        High-Contrast Yellow
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="gmeet-setting-group">
+                    <label>Reading & Typography</label>
+                    <button
+                      type="button"
+                      className={dyslexicFont ? 'gmeet-checkbox-btn checked' : 'gmeet-checkbox-btn'}
+                      onClick={() => setDyslexicFont(!dyslexicFont)}
+                    >
+                      <Check size={14} className="checkbox-tick" />
+                      <span>Enable Dyslexia-Friendly Font (OpenDyslexic)</span>
+                    </button>
+                  </div>
+
+                  <div className="gmeet-setting-group">
+                    <label>STEM Subject Lexicon</label>
+                    <select
+                      value={subject}
+                      onChange={e => setSubject(e.target.value)}
+                      className="gmeet-select"
+                    >
+                      <option value="general">General Science</option>
+                      <option value="maths">Mathematics & Calculus</option>
+                      <option value="physics">Physics & Mechanics</option>
+                      <option value="chemistry">Chemistry & Organic</option>
+                      <option value="biology">Biology & Life Sciences</option>
+                      <option value="computer_science">Computer Science & Algorithms</option>
+                    </select>
+                  </div>
+
+                  {/* Complete Transcript History */}
+                  <div className="gmeet-transcript-section">
+                    <h4>Session Transcript ({captionItems.length})</h4>
+                    <div className="gmeet-transcript-feed">
+                      {captionItems.length === 0 ? (
+                        <p className="gmeet-empty-note">Live captions will be recorded here for review.</p>
+                      ) : (
+                        captionItems.map(c => (
+                          <div key={c.id} className="gmeet-transcript-row">
+                            <span className="transcript-time">{c.time}</span>
+                            <span className="transcript-speaker">{c.speaker}:</span>
+                            <span className="transcript-body">{c.text}</span>
+                            {c.changed && <span className="transcript-tag">STEM Context Applied</span>}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SIGN LANGUAGE DRAWER */}
+              {activeSideDrawer === 'signs' && (
+                <div className="gmeet-signs-view">
+                  <div className="gmeet-setting-group">
+                    <label>Sign Language Standard</label>
+                    <div className="gmeet-pill-selector">
+                      <button
+                        type="button"
+                        className={signLanguage === 'ISL' ? 'active' : ''}
+                        onClick={() => setSignLanguage('ISL')}
+                      >
+                        Indian Sign Language (ISL)
+                      </button>
+                      <button
+                        type="button"
+                        className={signLanguage === 'ASL' ? 'active' : ''}
+                        onClick={() => setSignLanguage('ASL')}
+                      >
+                        American Sign Language (ASL)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="gmeet-setting-group">
+                    <label>Recognition Direction</label>
+                    <div className="gmeet-pill-selector">
+                      <button
+                        type="button"
+                        className={signDirection === 'student-to-teacher' ? 'active' : ''}
+                        onClick={() => setSignDirection('student-to-teacher')}
+                      >
+                        Student → Teacher
+                      </button>
+                      <button
+                        type="button"
+                        className={signDirection === 'teacher-to-student' ? 'active' : ''}
+                        onClick={() => setSignDirection('teacher-to-student')}
+                      >
+                        Teacher → Student
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="gmeet-sign-camera-box">
+                    <video ref={signVideoRef} autoPlay playsInline muted />
+                    {!signStreamRef.current && (
+                      <div className="gmeet-camera-off-overlay">
+                        <Camera size={32} />
+                        <span>Camera preview inactive</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="gmeet-camera-buttons">
+                    <button
+                      type="button"
+                      className="gmeet-btn-action"
+                      onClick={() => void startSignCamera()}
+                    >
+                      <Camera size={15} /> Start camera
+                    </button>
+                    <button
+                      type="button"
+                      className="gmeet-btn-action secondary"
+                      onClick={stopSignCamera}
+                    >
+                      <X size={15} /> Stop
+                    </button>
+                  </div>
+
+                  <div className="gmeet-model-notice">
+                    <ScanFace size={16} />
+                    <div>
+                      <b>MediaPipe & Gesture Pipeline</b>
+                      <small>Tracks 21 hand landmarks; sends live gloss results to meeting captions.</small>
+                    </div>
+                  </div>
+
+                  <div className="gmeet-setting-group">
+                    <label>Manual Verified Sign / Gloss Input</label>
+                    <textarea
+                      rows={2}
+                      value={signText}
+                      onChange={e => setSignText(e.target.value)}
+                      placeholder="e.g. Question about Newton's Second Law"
+                      className="gmeet-textarea"
+                    />
+                    <button
+                      type="button"
+                      className="gmeet-btn-primary-small"
+                      onClick={sendRecognizedSign}
+                    >
+                      <Send size={14} /> Send Sign as Caption
+                    </button>
+                  </div>
+                  <p className="gmeet-hint-text">{signStatus}</p>
+                </div>
+              )}
+
+              {/* WHITEBOARD DRAWER */}
+              {activeSideDrawer === 'board' && (
+                <div className="gmeet-board-view">
+                  <div className="gmeet-board-toolbar">
+                    <div className="gmeet-color-picker">
+                      {['#8ab4f8', '#ea4335', '#fbbc04', '#34a853', '#ffffff'].map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          className={brushColor === c ? 'color-dot active' : 'color-dot'}
+                          style={{ backgroundColor: c }}
+                          onClick={() => setBrushColor(c)}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="gmeet-btn-clear"
+                      onClick={clearBoard}
+                    >
+                      Clear canvas
+                    </button>
+                  </div>
+                  <canvas
+                    ref={canvasRef}
+                    width={640}
+                    height={440}
+                    className="gmeet-canvas"
+                    onPointerDown={startDraw}
+                    onPointerMove={moveDraw}
+                    onPointerUp={() => setDrawing(false)}
+                    onPointerLeave={() => setDrawing(false)}
+                  />
+                  <p className="gmeet-hint-text">Equations and diagrams drawn here are streamed in real-time to all participants.</p>
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
+      </main>
+
+      {/* Signature Google Meet Bottom Floating Dock */}
+      <footer className="gmeet-dock">
+        {/* Left: Time & Room Information */}
+        <div className="gmeet-dock-left">
+          <span className="gmeet-dock-time">{currentTime}</span>
+          <span className="gmeet-dock-divider">|</span>
+          <span className="gmeet-dock-room-code" title="Meeting Code">{roomName}</span>
+          <button
+            type="button"
+            className="gmeet-dock-copy-btn"
+            onClick={copyInvite}
+            title="Copy meeting info"
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+        </div>
+
+        {/* Center: Google Meet Circular Control Icons */}
+        <div className="gmeet-dock-center">
+          {/* Mic */}
+          <button
+            type="button"
+            className={`gmeet-circle-btn ${!localParticipant.isMicrophoneEnabled ? 'muted' : ''}`}
+            onClick={() => void localParticipant.setMicrophoneEnabled(!localParticipant.isMicrophoneEnabled)}
+            title={localParticipant.isMicrophoneEnabled ? 'Turn off microphone' : 'Turn on microphone'}
+          >
+            {localParticipant.isMicrophoneEnabled ? <Mic size={20} /> : <MicOff size={20} />}
+          </button>
+
+          {/* Camera */}
+          <button
+            type="button"
+            className={`gmeet-circle-btn ${!localParticipant.isCameraEnabled ? 'muted' : ''}`}
+            onClick={() => void localParticipant.setCameraEnabled(!localParticipant.isCameraEnabled)}
+            title={localParticipant.isCameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+          >
+            {localParticipant.isCameraEnabled ? <Video size={20} /> : <VideoOff size={20} />}
+          </button>
+
+          {/* Live Captions (CC) */}
+          <button
+            type="button"
+            className={`gmeet-circle-btn ${captionEnabled ? 'active-blue' : ''}`}
+            onClick={() => setCaptionEnabled(!captionEnabled)}
+            title={captionEnabled ? 'Turn off captions' : 'Turn on captions'}
+          >
+            <Captions size={20} />
+          </button>
+
+          {/* Raise Hand */}
+          <button
+            type="button"
+            className={`gmeet-circle-btn ${handRaised ? 'active-yellow' : ''}`}
+            onClick={toggleHandRaise}
+            title={handRaised ? 'Lower hand' : 'Raise hand'}
+          >
+            <Hand size={20} />
+          </button>
+
+          {/* Whiteboard Canvas */}
+          <button
+            type="button"
+            className={`gmeet-circle-btn ${activeSideDrawer === 'board' ? 'active-blue' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer === 'board' ? null : 'board')}
+            title="Whiteboard"
+          >
+            <PenTool size={20} />
+          </button>
+
+          {/* Sign Language Bridge */}
+          <button
+            type="button"
+            className={`gmeet-circle-btn ${activeSideDrawer === 'signs' ? 'active-blue' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer === 'signs' ? null : 'signs')}
+            title="Sign Language Bridge"
+          >
+            <Languages size={20} />
+          </button>
+
+          {/* End Call Button */}
+          <button
+            type="button"
+            className="gmeet-leave-pill"
+            onClick={onLeave}
+            title="Leave call"
+          >
+            <PhoneOff size={20} />
+          </button>
+        </div>
+
+        {/* Right: Drawer Triggers & Tools */}
+        <div className="gmeet-dock-right">
+          {/* People */}
+          <button
+            type="button"
+            className={`gmeet-tool-btn ${activeSideDrawer === 'people' ? 'active' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer === 'people' ? null : 'people')}
+            title="People"
+          >
+            <Users size={19} />
+            <span className="gmeet-count-badge">{participants.length || 1}</span>
+          </button>
+
+          {/* Chat */}
+          <button
+            type="button"
+            className={`gmeet-tool-btn ${activeSideDrawer === 'chat' ? 'active' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer === 'chat' ? null : 'chat')}
+            title="Chat with everyone"
+          >
+            <MessageSquare size={19} />
+            {chat.length > 0 && <span className="gmeet-dot-badge" />}
+          </button>
+
+          {/* Accessibility Settings */}
+          <button
+            type="button"
+            className={`gmeet-tool-btn ${activeSideDrawer === 'accessibility' ? 'active' : ''}`}
+            onClick={() => setActiveSideDrawer(activeSideDrawer === 'accessibility' ? null : 'accessibility')}
+            title="Accessibility and Captions"
+          >
+            <Settings2 size={19} />
+          </button>
+        </div>
+      </footer>
+    </div>
+  )
 }

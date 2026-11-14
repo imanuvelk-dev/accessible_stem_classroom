@@ -193,3 +193,4 @@ To present a compelling thesis defense to your external examiners, report the fo
    * Average inference latency per frame ($\le 35\text{ ms}$ for real-time performance).
 4. **Accessibility Usability Score:**
    * System Usability Scale (SUS) survey administered to test users rating readability, contrast, and two-way interaction.
+

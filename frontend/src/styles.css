@@ -1,35 +1,1550 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
-:root{font-family:'DM Sans',sans-serif;color:#f3f4fb;background:#0d101a;font-synthesis:none;text-rendering:optimizeLegibility}
-*{box-sizing:border-box}body{margin:0;min-width:320px;min-height:100vh;background:#0d101a}button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.6;cursor:not-allowed}
-.landing{min-height:100vh;max-width:1440px;margin:auto;padding:0 6.2%;background:radial-gradient(ellipse at 14% 18%,rgba(95,78,214,.15),transparent 34%),radial-gradient(ellipse at 84% 65%,rgba(34,137,156,.09),transparent 35%)}
-.topbar{height:84px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #252838}.brand{display:flex;align-items:center;gap:10px;font-family:Manrope,sans-serif;font-size:22px;font-weight:800;letter-spacing:-.8px}.brand-mark{width:37px;height:37px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#7567f8,#4d49bb);color:white;box-shadow:0 7px 22px #5d51dc33}.brand-accent{color:#9d94ff}.top-pill,.feature-pills span{display:flex;align-items:center;gap:8px;color:#a7adbf;font-size:12px;border:1px solid #2c3041;background:#151925;border-radius:999px;padding:9px 13px}.status-dot,.green-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#5de2b0}.hero{display:grid;grid-template-columns:1fr 410px;gap:9%;align-items:center;padding:66px 0 64px;min-height:560px}.eyebrow{display:flex;align-items:center;gap:8px;color:#a9a1ff;font-size:11px;font-weight:700;letter-spacing:1.8px}.hero h1{font-family:Manrope,sans-serif;font-size:clamp(42px,5.3vw,69px);line-height:1.08;letter-spacing:-3.2px;margin:24px 0 20px;font-weight:800}.hero h1 span{background:linear-gradient(90deg,#a79cff,#6cdbd1);-webkit-background-clip:text;background-clip:text;color:transparent}.hero-desc{max-width:510px;color:#a8afc1;font-size:16px;line-height:1.8}.feature-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:25px}.feature-pills span{padding:9px 11px;font-size:11px}.feature-pills svg{color:#a39aff}
-.join-card{border:1px solid #303449;background:linear-gradient(155deg,#1a1e2d,#151824);padding:28px;border-radius:22px;box-shadow:0 22px 70px #0003}.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}.card-kicker{font-size:10px;color:#9a91ff;font-weight:700;letter-spacing:1.7px}.card-head h2{font:700 25px Manrope,sans-serif;margin:7px 0 0;letter-spacing:-.8px}.card-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:#7467f820;color:#a49aff}.join-card label,.setting-card label{display:block;font-size:12px;font-weight:600;color:#b9bfd0;margin:17px 0 8px}.join-card input,.setting-card select,.message-form input{width:100%;border:1px solid #34394d;background:#111521;border-radius:10px;padding:13px 14px;color:#f2f3fc;outline:none}.join-card input:focus,.message-form input:focus{border-color:#8276ff;box-shadow:0 0 0 3px #8174ff20}.role-select{display:flex;background:#10131e;border:1px solid #303448;border-radius:10px;padding:4px;gap:4px}.role-option{flex:1;display:flex;justify-content:center;align-items:center;gap:8px;border:0;background:transparent;color:#a4aabd;border-radius:7px;padding:10px}.role-option.active{background:#302c56;color:#c6c0ff;box-shadow:inset 0 0 0 1px #6259a5}.btn-primary,.btn-secondary{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:10px;padding:13px 16px;font-weight:700;font-size:13px}.btn-primary{background:linear-gradient(100deg,#7869f8,#6255d8);color:white;box-shadow:0 8px 20px #6558e82b;margin-top:20px}.btn-primary:hover{filter:brightness(1.1)}.btn-secondary{background:#222638;border:1px solid #353a50;color:#e1e3f0}.or-line{display:flex;align-items:center;gap:12px;color:#737b90;font-size:11px;margin:17px 0}.or-line span{height:1px;background:#303448;flex:1}.privacy-note{display:flex;align-items:center;justify-content:center;gap:8px;color:#82899c;font-size:10px;margin:20px 0 0}.error-message,.notice{margin-top:13px;padding:11px;border-radius:9px;background:#512c39;color:#ffb9c7;font-size:12px;line-height:1.5}.value-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:25px 0 38px;border-top:1px solid #252838}.value-row>div{display:grid;grid-template-columns:28px 1fr;column-gap:10px;align-items:center}.value-row svg{grid-row:span 2;color:#9b91ff;width:21px}.value-row b{font-size:12px}.value-row span{font-size:11px;color:#838ba0;margin-top:4px}.landing footer{padding:0 0 25px;text-align:center;color:#666e83;font-size:9px;letter-spacing:1.8px}.landing footer span{color:#9c91ff;margin:0 5px}
-.livekit-shell{height:100vh;min-height:680px;background:#0d101a;color:#f4f5fc}.meeting-app{height:100vh;min-height:680px;display:flex;flex-direction:column;background:#0d101a;color:#f3f4fb}.meeting-header{height:66px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid #252838;background:#121520}.meeting-header .brand{font-size:19px}.meeting-header .brand-mark{width:32px;height:32px;border-radius:10px}.meeting-meta{display:flex;align-items:center;gap:12px}.live-badge{display:flex;align-items:center;gap:7px;color:#8ee9c8;background:#17342e;border:1px solid #245344;border-radius:999px;padding:6px 10px;font-size:9px;font-weight:800;letter-spacing:.7px}.room-code{font-size:12px;color:#b6bbcb;font-family:monospace}.icon-btn{display:grid;place-items:center;border:1px solid #33384b;background:#202435;color:#d5d8e8;border-radius:9px;width:34px;height:34px}.icon-btn.compact{width:29px;height:29px}.user-chip{display:flex;align-items:center;gap:9px;font-size:12px;color:#dce0ed}.avatar,.chat-avatar{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#413a79;color:#dcd7ff;font-weight:700}.role-label{border:1px solid #363b50;border-radius:5px;padding:4px 6px;font-size:9px;text-transform:uppercase;color:#a8a0ff}.meeting-layout{display:grid;grid-template-columns:minmax(0,1fr) 345px;gap:16px;flex:1;min-height:0;padding:16px 18px}.stage-column{display:flex;flex-direction:column;min-width:0;min-height:0}.stage-topline{display:flex;justify-content:space-between;align-items:center;padding:0 2px 12px;color:#a5adbf;font-size:11px}.stage-topline>div,.stage-stats{display:flex;align-items:center;gap:8px}.stage-stats{color:#858da2}.video-stage{flex:1;min-height:200px;overflow:hidden;border:1px solid #2b3042;border-radius:15px;background:#151925}.video-stage .lk-video-conference{height:100%}.video-stage .lk-grid-layout{height:100%;background:#151925}.video-stage .lk-participant-tile{border-radius:12px;overflow:hidden}.video-stage .lk-control-bar{display:none}.call-controls{display:flex;align-items:center;justify-content:space-between;padding:12px 0}.control-group{display:flex;gap:8px}.control-btn{display:flex;align-items:center;gap:8px;background:#202435;color:#e3e6f2;border:1px solid #33384b;border-radius:10px;padding:10px 13px;font-size:11px}.control-btn:hover{background:#2a2f45}.leave-btn{display:flex;align-items:center;gap:8px;background:#c8455b;color:white;border:0;border-radius:10px;padding:11px 17px;font-size:12px;font-weight:700}.caption-preview{border:1px solid #303449;background:#171b28;border-radius:13px;padding:12px 15px;min-height:108px;max-height:150px;overflow:auto}.caption-preview-head{display:flex;justify-content:space-between;align-items:center}.caption-preview-head>span{display:flex;align-items:center;gap:7px;color:#a9a0ff;font-size:10px;font-weight:800;letter-spacing:1px}.listening-pill{display:flex;align-items:center;gap:6px;color:#7e879d;font-size:9px}.listening-pill span{width:6px;height:6px;border-radius:50%;background:#626b80}.listening-pill.active{color:#7fe4bc}.listening-pill.active span{background:#5de2b0;box-shadow:0 0 0 3px #5de2b022}.caption-preview-text{line-height:1.55;color:#f5f6fc;padding-top:8px}.caption-preview-text p{margin:3px 0}.caption-placeholder{color:#828a9e;font-size:12px}
-.side-panel{min-height:0;display:flex;flex-direction:column;border:1px solid #2b3042;border-radius:15px;background:#141824;overflow:hidden}.side-tabs{display:flex;border-bottom:1px solid #2c3041;padding:7px;gap:4px}.side-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;background:transparent;color:#9098ac;border-radius:8px;padding:10px 5px;font-size:10px}.side-tab.active{background:#2b2850;color:#bcb5ff}.panel-content{display:flex;flex-direction:column;min-height:0;flex:1;overflow:auto;padding:17px}.panel-title-row{display:flex;justify-content:space-between;align-items:center;color:#9c93ff}.panel-title-row h3{font:700 16px Manrope,sans-serif;color:#f1f2fb;margin:0 0 5px;letter-spacing:-.3px}.panel-title-row p{margin:0;color:#8991a6;font-size:10px}.setting-card{margin-top:17px;padding:13px;border:1px solid #30354a;border-radius:11px;background:#191d2b}.setting-line{display:flex;align-items:center;justify-content:space-between;font-size:11px}.setting-line span{display:flex;align-items:center;gap:7px;color:#c7ccdc}.setting-line b{font-size:11px;color:#b3aaff}.range{width:100%;accent-color:#8b7cff;margin:15px 0 4px}.range-labels{display:flex;justify-content:space-between;color:#7f879c;font-size:9px}.setting-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;background:transparent;border:1px solid #30354a;border-radius:10px;padding:12px;margin-top:9px;color:#adb4c7;font-size:11px}.setting-toggle>span:first-child{display:flex;align-items:center;gap:8px}.setting-toggle.selected{color:#d7d3ff}.toggle-track{width:28px;height:16px;border-radius:99px;background:#383e53;padding:2px}.toggle-track i{display:block;width:12px;height:12px;border-radius:50%;background:#9ca3b5;transition:transform .15s}.setting-toggle.selected .toggle-track{background:#5d54bd}.setting-toggle.selected .toggle-track i{transform:translateX(12px);background:#fff}.setting-card select{margin-top:9px;padding:10px;font-size:11px}.caption-actions{margin-top:14px}.caption-actions .btn-primary{margin:0;font-size:11px;padding:12px}.btn-primary.listening{background:linear-gradient(100deg,#c34d66,#a83752)}.caption-actions p{display:flex;gap:6px;color:#7f879b;font-size:9px;line-height:1.5}.transcript-list{margin-top:18px;border-top:1px solid #2b3041;padding-top:14px}.transcript-heading{display:flex;align-items:center;justify-content:space-between}.transcript-heading h4{margin:0;font-size:12px}.transcript-heading span{font-size:9px;color:#7e879b}.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#6f7890;text-align:center;padding:35px 10px;font-size:11px}.empty-state p{margin:0}.transcript-item{padding:11px 0;border-bottom:1px solid #292e40}.transcript-item time{font-size:9px;color:#777f95}.transcript-item p{font-size:12px;line-height:1.5;margin:5px 0;color:#dfe2ef}.context-tag{font-size:8px;color:#91e5c4;background:#19372f;border-radius:4px;padding:3px 5px}.chat-panel,.board-panel{gap:0}.chat-list{flex:1;min-height:140px;overflow:auto;margin-top:16px}.chat-message{display:flex;gap:8px;margin-bottom:15px}.chat-message.own{flex-direction:row-reverse}.chat-avatar{width:26px;height:26px;flex-shrink:0;font-size:10px}.chat-bubble{max-width:85%;border:1px solid #30354a;border-radius:0 10px 10px 10px;padding:9px 10px;background:#1b2030}.chat-message.own .chat-bubble{border-radius:10px 0 10px 10px;background:#29264a;border-color:#403b6d}.chat-byline{display:flex;gap:7px;align-items:center}.chat-byline b{font-size:10px}.chat-byline span{font-size:8px;color:#9690d8;text-transform:capitalize}.chat-bubble p{font-size:11px;line-height:1.5;margin:6px 0 0;overflow-wrap:anywhere}.message-form{display:flex;gap:7px;margin-top:12px}.message-form input{font-size:11px;padding:11px;min-width:0}.message-form button{width:40px;flex-shrink:0;border:0;border-radius:9px;background:#7164e9;color:white;display:grid;place-items:center}.student-question{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:9px;width:100%;padding:10px;border-radius:9px;border:1px solid #39345f;background:#262345;color:#bdb5ff;font-size:10px}.board-tools{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;color:#9da5b9;font-size:10px}.board-tools span{display:flex;align-items:center;gap:7px}.purple-dot{width:7px;height:7px;background:#786cf6;border-radius:50%}.board-tools button{display:flex;align-items:center;gap:4px;border:0;background:transparent;color:#9ca4b8;font-size:10px}.drawing-canvas{width:100%;height:auto;aspect-ratio:1.4;background:#f7f8ff;border-radius:9px;touch-action:none;cursor:crosshair}.board-hint{color:#7f879b;font-size:10px;line-height:1.5}.meeting-footer{height:31px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;color:#6e778d;font-size:9px}.meeting-footer i{font-style:normal;color:#8275f4;margin:0 4px}.meeting-footer>span:last-child{display:flex;align-items:center;gap:7px}.high-contrast .caption-preview{background:#000;color:#fff}
-@media(max-width:1050px){.hero{grid-template-columns:1fr 370px;gap:4%}.hero h1{font-size:56px}.meeting-layout{grid-template-columns:minmax(0,1fr) 315px;padding:12px;gap:12px}.control-btn span{display:none}}
-@media(max-width:800px){.landing{padding:0 5%}.hero{grid-template-columns:1fr;gap:35px;padding:45px 0}.hero h1{font-size:54px}.join-card{max-width:520px;width:100%;margin:auto}.value-row{grid-template-columns:1fr;gap:20px}.top-pill{display:none}.meeting-app{height:auto;min-height:100vh}.meeting-layout{grid-template-columns:1fr;min-height:0}.stage-column{min-height:620px}.side-panel{min-height:540px}.meeting-header{padding:0 12px}.meeting-header .brand{font-size:16px}.meeting-header .brand-mark{width:28px;height:28px}.user-chip>span:not(.avatar):not(.role-label){display:none}.room-code{max-width:90px;overflow:hidden;text-overflow:ellipsis}.meeting-footer{padding:0 12px}.meeting-footer>span:last-child{display:none}}
-@media(max-width:460px){.hero h1{font-size:46px;letter-spacing:-2px}.join-card{padding:21px}.meeting-meta{gap:6px}.live-badge{font-size:8px;padding:5px 7px}.control-group{gap:5px}.control-btn{padding:10px}.leave-btn{padding:10px 12px}.stage-column{min-height:550px}.meeting-header .brand>span:last-child{display:none}}
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&family=OpenDyslexic&display=swap');
 
-/* Sign language bridge panel */
-.side-tabs{flex-wrap:wrap}
-.direction-option{flex:1;padding:9px 5px;border:1px solid #34394d;background:#111521;color:#9ca4b8;border-radius:8px;font-size:10px}
-.direction-option.active{background:#302c56;color:#c6c0ff;border-color:#6259a5}
-.sign-direction{display:flex;gap:7px;margin-top:17px}
-.sign-label{display:block;color:#b9bfd0;font-size:11px;font-weight:600;margin:15px 0 7px}
-.sign-select,.sign-textarea{width:100%;background:#111521;color:#f3f4fb;border:1px solid #34394d;border-radius:9px;padding:11px;font:inherit;font-size:11px}
-.sign-textarea{resize:vertical;line-height:1.5}
-.sign-camera-box{position:relative;margin-top:14px;aspect-ratio:4/3;border:1px solid #34394d;border-radius:10px;overflow:hidden;background:#090b12}
-.sign-camera-box video{display:block;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-.sign-camera-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#8f97ac;font-size:11px}
-.sign-camera-placeholder small{font-size:9px;color:#687187}
-.sign-camera-actions{display:flex;gap:8px;margin-top:8px}
-.sign-camera-actions button{margin:0;padding:10px 6px;font-size:10px;flex:1}
-.sign-model-status{display:flex;align-items:flex-start;gap:9px;padding:11px;margin-top:13px;background:#352d1b;border:1px solid #5d4b27;border-radius:9px;color:#f0d8a0;font-size:10px;line-height:1.45}
-.sign-model-status small{display:block;color:#c5b78f;margin-top:4px;font-size:9px}
-.warning-dot{width:7px;height:7px;border-radius:50%;background:#f3bd55;flex-shrink:0;margin-top:4px}
-.sign-status{font-size:10px;color:#9fa8bd;line-height:1.5}
-.sign-note{display:flex;align-items:flex-start;gap:8px;color:#8d96ab;font-size:9px;line-height:1.55;padding:10px;background:#1b2030;border-radius:8px}
-.sign-note svg{flex-shrink:0;color:#a69cff}
+:root {
+  --gmeet-bg: #202124;
+  --gmeet-surface: #28292c;
+  --gmeet-surface-hover: #35373b;
+  --gmeet-border: #3c4043;
+  --gmeet-text: #e8eaed;
+  --gmeet-text-secondary: #9aa0a6;
+  --gmeet-blue: #8ab4f8;
+  --gmeet-blue-hover: #aecbfa;
+  --gmeet-red: #ea4335;
+  --gmeet-red-hover: #f28b82;
+  --gmeet-yellow: #fdd663;
+  --gmeet-green: #81c995;
+  --font-main: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
 
-.meeting-app.contrast-mode .caption-preview,.meeting-app.contrast-mode .caption-preview-text{background:#000!important;color:#fff!important}
-.meeting-app.contrast-mode .caption-preview{border:2px solid #fff}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--gmeet-bg);
+  color: var(--gmeet-text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  background: none;
+  color: inherit;
+  transition: all 0.15s ease-in-out;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  outline: none;
+}
+
+/* ==========================================================================
+   LANDING PAGE (GOOGLE MEET STYLE)
+   ========================================================================== */
+.gmeet-landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--gmeet-bg);
+}
+
+.gmeet-landing-header {
+  height: 68px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--gmeet-border);
+}
+
+.gmeet-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gmeet-brand-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1a73e8, #4285f4);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.gmeet-brand-text {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  color: var(--gmeet-text);
+}
+
+.gmeet-brand-text b {
+  color: var(--gmeet-blue);
+  font-weight: 700;
+}
+
+.gmeet-tag {
+  background: rgba(138, 180, 248, 0.15);
+  color: var(--gmeet-blue);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gmeet-badge-secure {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gmeet-text-secondary);
+  background: var(--gmeet-surface);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--gmeet-border);
+}
+
+.gmeet-landing-hero {
+  flex: 1;
+  max-width: 1300px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 48px 32px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.gmeet-hero-left h1 {
+  font-size: 46px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.gmeet-hero-sub {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--gmeet-text-secondary);
+  margin-bottom: 36px;
+  max-width: 580px;
+}
+
+.gmeet-action-box {
+  background: var(--gmeet-surface);
+  border: 1px solid var(--gmeet-border);
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 560px;
+  margin-bottom: 32px;
+}
+
+.gmeet-input-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gmeet-input-name {
+  flex: 1;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.gmeet-input-name:focus {
+  border-color: var(--gmeet-blue);
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+.gmeet-role-toggle {
+  display: flex;
+  background: #17181a;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--gmeet-border);
+}
+
+.gmeet-role-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-role-btn.active {
+  background: #3c4043;
+  color: #fff;
+  font-weight: 500;
+}
+
+.gmeet-join-actions {
+  display: flex;
+  gap: 14px;
+}
+
+.gmeet-btn-new-meeting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gmeet-blue);
+  color: #202124;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.gmeet-btn-new-meeting:hover {
+  background: var(--gmeet-blue-hover);
+}
+
+.gmeet-code-join {
+  flex: 1;
+  display: flex;
+  position: relative;
+}
+
+.gmeet-input-code {
+  width: 100%;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  color: #fff;
+  padding: 12px 64px 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.gmeet-input-code:focus {
+  border-color: var(--gmeet-blue);
+}
+
+.gmeet-btn-join {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--gmeet-blue);
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.gmeet-btn-join:hover:not(:disabled) {
+  background: rgba(138, 180, 248, 0.1);
+}
+
+.gmeet-alert-error {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: rgba(234, 67, 53, 0.15);
+  border: 1px solid rgba(234, 67, 53, 0.4);
+  color: #f28b82;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.gmeet-feature-strip {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.gmeet-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gmeet-text-secondary);
+  font-size: 13px;
+}
+
+.gmeet-feature-item svg {
+  color: var(--gmeet-blue);
+}
+
+/* Landing Preview Card */
+.gmeet-preview-card {
+  background: var(--gmeet-surface);
+  border: 1px solid var(--gmeet-border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.gmeet-preview-screen {
+  background: #17181a;
+  height: 320px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.gmeet-preview-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 40px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+}
+
+.gmeet-preview-tag {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #fff;
+}
+
+.gmeet-preview-caption-sample {
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  right: 20px;
+  background: rgba(32, 33, 36, 0.9);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fff;
+  border-left: 3px solid var(--gmeet-blue);
+}
+
+.gmeet-preview-caption-sample .caption-speaker {
+  color: var(--gmeet-blue);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.gmeet-preview-footer {
+  padding: 16px 24px;
+  text-align: center;
+  color: var(--gmeet-text-secondary);
+  font-size: 13px;
+  border-top: 1px solid var(--gmeet-border);
+}
+
+/* ==========================================================================
+   GOOGLE MEET ACTIVE ROOM
+   ========================================================================== */
+.gmeet-root, .gmeet-room {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--gmeet-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Top Floating Bar */
+.gmeet-topbar {
+  height: 52px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.gmeet-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gmeet-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.gmeet-accent-icon {
+  color: var(--gmeet-blue);
+}
+
+.gmeet-topbar-divider {
+  color: var(--gmeet-border);
+}
+
+.gmeet-topbar-subject {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--gmeet-blue);
+  background: rgba(138, 180, 248, 0.12);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.gmeet-topbar-center {
+  display: flex;
+  align-items: center;
+}
+
+.gmeet-raised-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(253, 214, 99, 0.2);
+  border: 1px solid rgba(253, 214, 99, 0.4);
+  color: var(--gmeet-yellow);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  animation: pulse 2s infinite;
+}
+
+.gmeet-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gmeet-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gmeet-surface);
+  border: 1px solid var(--gmeet-border);
+  padding: 4px 10px 4px 4px;
+  border-radius: 20px;
+}
+
+.gmeet-avatar-mini {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.gmeet-user-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gmeet-role-pill {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--gmeet-blue);
+  background: rgba(138, 180, 248, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Main Area (Video Grid + Drawer) */
+.gmeet-main {
+  flex: 1;
+  display: flex;
+  padding: 0 16px 12px 16px;
+  gap: 16px;
+  min-height: 0;
+  position: relative;
+}
+
+.gmeet-stage-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Responsive Google Meet Grid */
+.gmeet-grid {
+  flex: 1;
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.gmeet-grid.count-1 {
+  grid-template-columns: 1fr;
+}
+
+.gmeet-grid.count-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.gmeet-grid.count-3, .gmeet-grid.count-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.gmeet-tile {
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.2s ease;
+}
+
+.gmeet-tile.speaking {
+  box-shadow: 0 0 0 3px var(--gmeet-blue);
+}
+
+.gmeet-video-track {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.gmeet-avatar-placeholder {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 46px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.gmeet-tile-footer {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.gmeet-tile-name {
+  background: rgba(32, 33, 36, 0.85);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.speaking-icon {
+  color: var(--gmeet-blue);
+  animation: bounce 1s infinite alternate;
+}
+
+.gmeet-hand-badge {
+  background: rgba(253, 214, 99, 0.95);
+  color: #202124;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================================================
+   FLOATING GOOGLE MEET CAPTIONS OVERLAY (WITH STEM GLOSSARY SUPPORT)
+   ========================================================================== */
+.gmeet-captions-overlay {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 900px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.gmeet-captions-inner {
+  background: rgba(32, 33, 36, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 20px;
+  color: #fff;
+  line-height: 1.5;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+
+.gmeet-caption-line {
+  margin: 4px 0;
+}
+
+.gmeet-caption-speaker {
+  color: var(--gmeet-blue);
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.gmeet-caption-text {
+  color: #f1f3f4;
+}
+
+.gmeet-caption-idle {
+  color: var(--gmeet-text-secondary);
+  font-size: 13px;
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* Clickable STEM Term Pills */
+.gmeet-stem-term-pill {
+  display: inline-block;
+  background: rgba(138, 180, 248, 0.22);
+  color: #b3d1ff;
+  border-bottom: 2px solid var(--gmeet-blue);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin: 0 2px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.gmeet-stem-term-pill:hover {
+  background: var(--gmeet-blue);
+  color: #202124;
+}
+
+/* Interactive Glossary Card */
+.gmeet-glossary-card {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #28292c;
+  border: 1px solid var(--gmeet-blue);
+  border-radius: 14px;
+  padding: 16px 20px;
+  width: 90%;
+  max-width: 520px;
+  z-index: 30;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.2s ease-out;
+}
+
+.gmeet-glossary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.gmeet-glossary-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gmeet-blue);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.gmeet-glossary-title small {
+  background: rgba(138, 180, 248, 0.15);
+  color: var(--gmeet-blue);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.gmeet-icon-close {
+  color: var(--gmeet-text-secondary);
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.gmeet-icon-close:hover {
+  background: #3c4043;
+  color: #fff;
+}
+
+.gmeet-glossary-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e8eaed;
+  margin-bottom: 12px;
+}
+
+.gmeet-glossary-formula {
+  background: #1e1f21;
+  border-left: 3px solid var(--gmeet-blue);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.gmeet-glossary-formula span {
+  display: block;
+  color: var(--gmeet-text-secondary);
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.gmeet-glossary-formula code {
+  color: #c2e7ff;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   GOOGLE MEET SIGNATURE BOTTOM CONTROL DOCK
+   ========================================================================== */
+.gmeet-dock {
+  height: 80px;
+  background-color: var(--gmeet-bg);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 25;
+}
+
+/* Left Section: Clock & Info */
+.gmeet-dock-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+}
+
+.gmeet-dock-time {
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.gmeet-dock-divider {
+  color: var(--gmeet-border);
+}
+
+.gmeet-dock-room-code {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gmeet-text-secondary);
+  font-family: monospace;
+}
+
+.gmeet-dock-copy-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-dock-copy-btn:hover {
+  background: #3c4043;
+  color: #fff;
+}
+
+/* Center Section: Signature Round Google Meet Buttons */
+.gmeet-dock-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gmeet-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gmeet-surface);
+  border: 1px solid var(--gmeet-border);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.gmeet-circle-btn:hover {
+  background: var(--gmeet-surface-hover);
+}
+
+.gmeet-circle-btn.muted {
+  background: var(--gmeet-red);
+  border-color: var(--gmeet-red);
+  color: #fff;
+}
+
+.gmeet-circle-btn.muted:hover {
+  background: var(--gmeet-red-hover);
+}
+
+.gmeet-circle-btn.active-blue {
+  background: var(--gmeet-blue);
+  color: #202124;
+  border-color: var(--gmeet-blue);
+}
+
+.gmeet-circle-btn.active-yellow {
+  background: var(--gmeet-yellow);
+  color: #202124;
+  border-color: var(--gmeet-yellow);
+}
+
+.gmeet-leave-pill {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 22px;
+  background: var(--gmeet-red);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.gmeet-leave-pill:hover {
+  background: var(--gmeet-red-hover);
+}
+
+/* Right Section: Drawer Triggers */
+.gmeet-dock-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+  justify-content: flex-end;
+}
+
+.gmeet-tool-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--gmeet-text-secondary);
+  position: relative;
+}
+
+.gmeet-tool-btn:hover {
+  background: var(--gmeet-surface-hover);
+  color: #fff;
+}
+
+.gmeet-tool-btn.active {
+  color: var(--gmeet-blue);
+  background: rgba(138, 180, 248, 0.15);
+}
+
+.gmeet-count-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #3c4043;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 10px;
+}
+
+.gmeet-dot-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gmeet-blue);
+}
+
+/* ==========================================================================
+   GOOGLE MEET RIGHT DRAWER
+   ========================================================================== */
+.gmeet-drawer {
+  width: 360px;
+  background: var(--gmeet-surface);
+  border: 1px solid var(--gmeet-border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideDrawer 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.gmeet-drawer-header {
+  height: 56px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--gmeet-border);
+}
+
+.gmeet-drawer-header h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.gmeet-drawer-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-drawer-close:hover {
+  background: #3c4043;
+  color: #fff;
+}
+
+.gmeet-drawer-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--gmeet-border);
+  padding: 6px 12px;
+  gap: 6px;
+}
+
+.drawer-tab {
+  flex: 1;
+  height: 36px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--gmeet-text-secondary);
+}
+
+.drawer-tab:hover {
+  background: #35373b;
+  color: #fff;
+}
+
+.drawer-tab.active {
+  background: rgba(138, 180, 248, 0.2);
+  color: var(--gmeet-blue);
+}
+
+.gmeet-drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+}
+
+/* Drawer: Chat View */
+.gmeet-chat-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gmeet-chat-history {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.gmeet-empty-chat {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--gmeet-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 0 20px;
+  gap: 12px;
+}
+
+.gmeet-chat-bubble {
+  background: #1e1f21;
+  border: 1px solid var(--gmeet-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  max-width: 90%;
+}
+
+.gmeet-chat-bubble.own {
+  align-self: flex-end;
+  background: rgba(138, 180, 248, 0.15);
+  border-color: rgba(138, 180, 248, 0.3);
+}
+
+.gmeet-chat-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.gmeet-chat-meta b {
+  font-size: 12px;
+  color: #fff;
+}
+
+.gmeet-chat-meta span {
+  font-size: 10px;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-chat-role {
+  background: #3c4043;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9px !important;
+  text-transform: uppercase;
+}
+
+.gmeet-chat-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e8eaed;
+  word-break: break-word;
+}
+
+.gmeet-chat-input-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gmeet-chat-input-bar input {
+  flex: 1;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.gmeet-chat-input-bar input:focus {
+  border-color: var(--gmeet-blue);
+}
+
+.gmeet-chat-input-bar button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--gmeet-blue);
+  color: #202124;
+  display: grid;
+  place-items: center;
+}
+
+.gmeet-btn-quick-question {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(253, 214, 99, 0.12);
+  border: 1px solid rgba(253, 214, 99, 0.3);
+  color: var(--gmeet-yellow);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Drawer: People View */
+.gmeet-person-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gmeet-person-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gmeet-person-info b {
+  display: block;
+  font-size: 13px;
+  color: #fff;
+}
+
+.gmeet-person-info small {
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+  text-transform: capitalize;
+}
+
+.gmeet-person-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-yellow-icon {
+  color: var(--gmeet-yellow);
+}
+
+.gmeet-red-icon {
+  color: var(--gmeet-red);
+}
+
+/* Drawer: Settings & Accessibility View */
+.gmeet-setting-group {
+  margin-bottom: 20px;
+}
+
+.gmeet-setting-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gmeet-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.gmeet-setting-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.gmeet-slider {
+  width: 100%;
+  accent-color: var(--gmeet-blue);
+  margin: 6px 0;
+}
+
+.gmeet-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-btn-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px 16px;
+  background: var(--gmeet-surface-hover);
+  border: 1px solid var(--gmeet-border);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gmeet-btn-toggle.active {
+  background: rgba(234, 67, 53, 0.2);
+  border-color: var(--gmeet-red);
+  color: #f28b82;
+}
+
+.gmeet-theme-row {
+  display: flex;
+  gap: 8px;
+}
+
+.gmeet-theme-chip {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  color: var(--gmeet-text-secondary);
+  font-size: 12px;
+}
+
+.gmeet-theme-chip.active {
+  background: rgba(138, 180, 248, 0.2);
+  border-color: var(--gmeet-blue);
+  color: var(--gmeet-blue);
+  font-weight: 600;
+}
+
+.gmeet-checkbox-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--gmeet-text);
+  text-align: left;
+}
+
+.checkbox-tick {
+  color: transparent;
+}
+
+.gmeet-checkbox-btn.checked .checkbox-tick {
+  color: var(--gmeet-blue);
+}
+
+.gmeet-select, .gmeet-textarea {
+  width: 100%;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.gmeet-select:focus, .gmeet-textarea:focus {
+  border-color: var(--gmeet-blue);
+}
+
+.gmeet-transcript-section {
+  border-top: 1px solid var(--gmeet-border);
+  padding-top: 16px;
+  margin-top: 20px;
+}
+
+.gmeet-transcript-section h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--gmeet-text);
+}
+
+.gmeet-transcript-feed {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gmeet-transcript-row {
+  background: #17181a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.transcript-time {
+  color: var(--gmeet-text-secondary);
+  font-size: 10px;
+  margin-right: 6px;
+}
+
+.transcript-speaker {
+  font-weight: 600;
+  color: var(--gmeet-blue);
+  margin-right: 6px;
+}
+
+.transcript-tag {
+  display: inline-block;
+  font-size: 9px;
+  color: var(--gmeet-green);
+  background: rgba(129, 201, 149, 0.15);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+/* Drawer: Sign Language View */
+.gmeet-pill-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.gmeet-pill-selector button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  font-size: 12px;
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-pill-selector button.active {
+  background: rgba(138, 180, 248, 0.2);
+  border-color: var(--gmeet-blue);
+  color: var(--gmeet-blue);
+  font-weight: 600;
+}
+
+.gmeet-sign-camera-box {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 12px;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  overflow: hidden;
+  position: relative;
+  margin: 12px 0 8px 0;
+}
+
+.gmeet-sign-camera-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.gmeet-camera-off-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--gmeet-text-secondary);
+  font-size: 12px;
+}
+
+.gmeet-camera-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.gmeet-btn-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: var(--gmeet-surface-hover);
+  border: 1px solid var(--gmeet-border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.gmeet-btn-action.secondary {
+  color: var(--gmeet-text-secondary);
+}
+
+.gmeet-model-notice {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(138, 180, 248, 0.1);
+  border: 1px solid rgba(138, 180, 248, 0.25);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.gmeet-model-notice b {
+  display: block;
+  color: var(--gmeet-blue);
+  margin-bottom: 2px;
+}
+
+.gmeet-model-notice small {
+  color: var(--gmeet-text-secondary);
+  line-height: 1.4;
+  display: block;
+}
+
+.gmeet-btn-primary-small {
+  margin-top: 8px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px;
+  background: var(--gmeet-blue);
+  color: #202124;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gmeet-hint-text {
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.gmeet-hint-text.alert {
+  color: #f28b82;
+}
+
+/* Drawer: Whiteboard View */
+.gmeet-board-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.gmeet-color-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.color-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.color-dot.active {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+.gmeet-btn-clear {
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.gmeet-btn-clear:hover {
+  background: #3c4043;
+  color: #fff;
+}
+
+.gmeet-canvas {
+  width: 100%;
+  background: #17181a;
+  border: 1px solid var(--gmeet-border);
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* ==========================================================================
+   HIGH-CONTRAST & DYSLEXIA ACCESSIBILITY MODES (WCAG 2.1 AAA)
+   ========================================================================== */
+.contrast-mode {
+  --gmeet-bg: #000000;
+  --gmeet-surface: #0a0a0a;
+  --gmeet-border: #ffff00;
+  --gmeet-text: #ffff00;
+  --gmeet-text-secondary: #ffffff;
+  --gmeet-blue: #ffff00;
+}
+
+.contrast-mode .gmeet-captions-inner {
+  background: #000000 !important;
+  color: #ffff00 !important;
+  border: 2px solid #ffff00 !important;
+}
+
+.contrast-mode .gmeet-caption-speaker, .contrast-mode .gmeet-caption-text {
+  color: #ffff00 !important;
+}
+
+.contrast-mode .gmeet-stem-term-pill {
+  background: #ffff00 !important;
+  color: #000000 !important;
+}
+
+.dyslexic-mode {
+  font-family: 'OpenDyslexic', sans-serif !important;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 0.8; }
+}
+
+@keyframes slideDrawer {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes bounce {
+  from { transform: scale(0.9); }
+  to { transform: scale(1.1); }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .gmeet-landing-hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .gmeet-hero-right {
+    display: none;
+  }
+  .gmeet-dock-left, .gmeet-dock-right {
+    min-width: auto;
+  }
+  .gmeet-drawer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 320px;
+    z-index: 50;
+  }
+}
