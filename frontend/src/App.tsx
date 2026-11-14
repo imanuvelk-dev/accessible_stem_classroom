@@ -62,11 +62,61 @@ export default function App() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Landing Page Interactive Camera & Audio Preview
+  const [previewCameraOn, setPreviewCameraOn] = useState(false)
+  const [previewMicOn, setPreviewMicOn] = useState(false)
+  const previewVideoRef = useRef<HTMLVideoElement>(null)
+  const previewStreamRef = useRef<MediaStream | null>(null)
+
+  // Cycling real-time sample captions
+  const SAMPLE_STEM_CAPTIONS = [
+    { speaker: "Prof. Satheesh (Physics)", text: "According to Newton's second law, net force F equals mass m times acceleration a: F = m·a." },
+    { speaker: "Imanuvel (ISL Sign)", text: "[Sign Language]: Can we solve this quadratic equation using the quadratic formula?" },
+    { speaker: "Prof. Satheesh (Calculus)", text: "The derivative of e^(2x) with respect to x gives 2e^(2x) by applying the chain rule." },
+    { speaker: "Prof. Satheesh (Biology)", text: "In photosynthesis, light reactions produce ATP and NADPH inside the chloroplast thylakoids." }
+  ]
+  const [sampleIdx, setSampleIdx] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSampleIdx(prev => (prev + 1) % SAMPLE_STEM_CAPTIONS.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [])
+
+  async function togglePreviewCamera() {
+    if (previewCameraOn) {
+      previewStreamRef.current?.getTracks().forEach(t => t.stop())
+      previewStreamRef.current = null
+      if (previewVideoRef.current) previewVideoRef.current.srcObject = null
+      setPreviewCameraOn(false)
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        previewStreamRef.current = stream
+        if (previewVideoRef.current) {
+          previewVideoRef.current.srcObject = stream
+          await previewVideoRef.current.play()
+        }
+        setPreviewCameraOn(true)
+      } catch {
+        setError('Camera permission was denied or camera is in use by another app.')
+      }
+    }
+  }
+
   async function enterRoom(room: string) {
     setError('')
     if (!name.trim()) return setError('Please enter your display name to join.')
     if (!room.trim()) return setError('Please enter or generate a meeting code.')
     setBusy(true)
+
+    // Stop landing preview camera if active
+    if (previewStreamRef.current) {
+      previewStreamRef.current.getTracks().forEach(t => t.stop())
+      previewStreamRef.current = null
+    }
+
     try {
       const response = await fetch(`${API}/api/token`, {
         method: 'POST',
@@ -121,46 +171,82 @@ export default function App() {
     )
   }
 
+  const currentSample = SAMPLE_STEM_CAPTIONS[sampleIdx]
+
   return (
     <main className="gmeet-landing">
+      {/* Ambient background glow elements */}
+      <div className="landing-ambient-glow glow-blue" />
+      <div className="landing-ambient-glow glow-purple" />
+      <div className="landing-ambient-glow glow-cyan" />
+
+      {/* Top Navigation */}
       <header className="gmeet-landing-header">
         <div className="gmeet-brand">
           <div className="gmeet-brand-icon"><Accessibility size={24} /></div>
-          <span className="gmeet-brand-text">Access<b>Class</b></span>
-          <span className="gmeet-tag">STEM Classroom</span>
+          <div className="gmeet-brand-meta">
+            <span className="gmeet-brand-text">Access<b>Class</b></span>
+            <span className="gmeet-brand-sub">STEM AI Inclusivity</span>
+          </div>
         </div>
+
         <div className="gmeet-header-meta">
-          <span className="gmeet-badge-secure"><Sparkles size={14} /> AI-Powered Accessibility</span>
+          <div className="gmeet-pulse-status">
+            <span className="pulse-dot" />
+            <span>AI Models & WebRTC Ready</span>
+          </div>
+          <span className="gmeet-tag-rit">RIT Dept of AI & ML</span>
         </div>
       </header>
 
+      {/* Hero Body */}
       <section className="gmeet-landing-hero">
+        {/* Left Column: Mission & Interactive Join Console */}
         <div className="gmeet-hero-left">
-          <h1>Inclusive video meetings for STEM classrooms.</h1>
+          <div className="gmeet-eyebrow-pill">
+            <Sparkles size={14} className="eyebrow-sparkle" />
+            <span>FINAL-YEAR AI & ML PROJECT • CONTEXT-AWARE ACCESSIBILITY</span>
+          </div>
+
+          <h1>
+            Empowering every voice in <br />
+            <span className="hero-gradient-text">STEM Classrooms.</span>
+          </h1>
+
           <p className="gmeet-hero-sub">
-            Real-time context-aware speech captioning, bidirectional sign language translation, mathematical formula rendering, and personalized visual displays designed for speech & hearing-impaired learners.
+            A real-time WebRTC classroom bridging communication barriers with context-aware technical speech captioning, bidirectional sign language translation (ISL/ASL), mathematical formula rendering, and personalized visual displays.
           </p>
 
+          {/* Interactive Joining Console */}
           <div className="gmeet-action-box">
+            <div className="gmeet-box-kicker">
+              <span>GET STARTED</span>
+              <small>Choose your classroom role</small>
+            </div>
+
+            {/* Name Input & Role Selector */}
             <div className="gmeet-input-row">
-              <input
-                className="gmeet-input-name"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Enter your name"
-                maxLength={60}
-              />
+              <div className="gmeet-name-wrapper">
+                <input
+                  className="gmeet-input-name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  maxLength={60}
+                />
+              </div>
+
               <div className="gmeet-role-toggle">
                 <button
                   type="button"
-                  className={role === 'student' ? 'gmeet-role-btn active' : 'gmeet-role-btn'}
+                  className={role === 'student' ? 'gmeet-role-btn active student' : 'gmeet-role-btn'}
                   onClick={() => setRole('student')}
                 >
                   <Users size={15} /> Student
                 </button>
                 <button
                   type="button"
-                  className={role === 'teacher' ? 'gmeet-role-btn active' : 'gmeet-role-btn'}
+                  className={role === 'teacher' ? 'gmeet-role-btn active teacher' : 'gmeet-role-btn'}
                   onClick={() => setRole('teacher')}
                 >
                   <BookOpen size={15} /> Teacher
@@ -168,6 +254,26 @@ export default function App() {
               </div>
             </div>
 
+            {/* Quick Demo Personas */}
+            <div className="gmeet-quick-personas">
+              <span>Quick setup:</span>
+              <button
+                type="button"
+                className="gmeet-chip-btn"
+                onClick={() => { setName('Imanuvel (Student)'); setRole('student') }}
+              >
+                Imanuvel (Student)
+              </button>
+              <button
+                type="button"
+                className="gmeet-chip-btn"
+                onClick={() => { setName('Prof. Satheesh (Teacher)'); setRole('teacher') }}
+              >
+                Prof. Satheesh (Teacher)
+              </button>
+            </div>
+
+            {/* Join Actions: New Meeting + Code Input */}
             <div className="gmeet-join-actions">
               <button
                 className="gmeet-btn-new-meeting"
@@ -183,48 +289,155 @@ export default function App() {
                   className="gmeet-input-code"
                   value={roomName}
                   onChange={e => setRoomName(e.target.value)}
-                  placeholder="Enter a code or link"
+                  placeholder="Enter meeting code"
                 />
                 <button
                   className="gmeet-btn-join"
                   disabled={busy || !roomName.trim()}
                   onClick={() => enterRoom(roomName)}
                 >
-                  Join
+                  <DoorOpen size={16} /> Join
                 </button>
               </div>
+            </div>
+
+            {/* Predefined Classroom Subject Rooms */}
+            <div className="gmeet-suggested-rooms">
+              <span>Or join subject room:</span>
+              <button
+                type="button"
+                className="room-pill"
+                onClick={() => { setRoomName('stem-calculus-lab') }}
+              >
+                📐 Calculus
+              </button>
+              <button
+                type="button"
+                className="room-pill"
+                onClick={() => { setRoomName('stem-physics-mechanics') }}
+              >
+                ⚡ Physics
+              </button>
+              <button
+                type="button"
+                className="room-pill"
+                onClick={() => { setRoomName('stem-organic-chemistry') }}
+              >
+                🧪 Chemistry
+              </button>
             </div>
 
             {error && <div className="gmeet-alert-error" role="alert">{error}</div>}
           </div>
 
+          {/* 4 Feature Badges */}
           <div className="gmeet-feature-strip">
-            <div className="gmeet-feature-item"><Captions size={18} /><span>Contextual Captions</span></div>
-            <div className="gmeet-feature-item"><Languages size={18} /><span>Sign Language Bridge</span></div>
-            <div className="gmeet-feature-item"><PenTool size={18} /><span>Shared Math Canvas</span></div>
-            <div className="gmeet-feature-item"><Eye size={18} /><span>High-Contrast & Dyslexia UI</span></div>
+            <div className="gmeet-feature-item">
+              <div className="feature-icon-circle"><Captions size={17} /></div>
+              <div><b>Contextual Captions</b><small>STEM Homophone Disambiguation</small></div>
+            </div>
+            <div className="gmeet-feature-item">
+              <div className="feature-icon-circle"><Languages size={17} /></div>
+              <div><b>Bidirectional Signing</b><small>ISL & ASL Gesture Translation</small></div>
+            </div>
+            <div className="gmeet-feature-item">
+              <div className="feature-icon-circle"><PenTool size={17} /></div>
+              <div><b>Math Whiteboard</b><small>Real-Time Stroke Collaboration</small></div>
+            </div>
+            <div className="gmeet-feature-item">
+              <div className="feature-icon-circle"><Eye size={17} /></div>
+              <div><b>WCAG 2.1 AAA</b><small>High Contrast & Dyslexic Fonts</small></div>
+            </div>
           </div>
         </div>
 
+        {/* Right Column: Google Meet Green Room (Interactive Camera & Audio Check) */}
         <div className="gmeet-hero-right">
-          <div className="gmeet-preview-card">
-            <div className="gmeet-preview-screen">
-              <div className="gmeet-preview-video">
-                <div className="gmeet-preview-avatar">
-                  {name ? name.slice(0, 1).toUpperCase() : 'A'}
-                </div>
-                <div className="gmeet-preview-tag">{name || 'Your video'}</div>
+          <div className="gmeet-greenroom-card">
+            <div className="greenroom-header">
+              <div className="greenroom-title">
+                <span className="live-dot" />
+                <span>Classroom Preview & Hardware Check</span>
               </div>
-              <div className="gmeet-preview-caption-sample">
-                <span className="caption-speaker">Teacher:</span> In this equation, <b>photosynthesis</b> converts light energy into chemical bonds.
+              <span className="greenroom-chip">{role.toUpperCase()}</span>
+            </div>
+
+            {/* Video Preview Box */}
+            <div className="greenroom-screen">
+              {previewCameraOn ? (
+                <video ref={previewVideoRef} autoPlay playsInline muted className="greenroom-video-feed" />
+              ) : (
+                <div className="greenroom-avatar-box">
+                  <div className="greenroom-avatar" style={{ backgroundColor: getAvatarColor(name || 'User') }}>
+                    {name ? name.slice(0, 1).toUpperCase() : 'A'}
+                  </div>
+                  <span className="greenroom-name-tag">{name || 'Your video'}</span>
+                  <small className="greenroom-hint">Camera preview is off. Click below to test your webcam.</small>
+                </div>
+              )}
+
+              {/* Hardware control toggles on preview (Google Meet signature controls) */}
+              <div className="greenroom-controls-bar">
+                <button
+                  type="button"
+                  className={`greenroom-round-btn ${!previewMicOn ? 'muted' : 'active'}`}
+                  onClick={() => setPreviewMicOn(!previewMicOn)}
+                  title={previewMicOn ? 'Microphone on' : 'Microphone muted'}
+                >
+                  {previewMicOn ? <Mic size={18} /> : <MicOff size={18} />}
+                </button>
+
+                <button
+                  type="button"
+                  className={`greenroom-round-btn ${!previewCameraOn ? 'muted' : 'active'}`}
+                  onClick={() => void togglePreviewCamera()}
+                  title={previewCameraOn ? 'Camera on' : 'Camera off'}
+                >
+                  {previewCameraOn ? <Video size={18} /> : <VideoOff size={18} />}
+                </button>
+              </div>
+
+              {/* Live Simulated STEM Caption Overlay */}
+              <div className="greenroom-caption-banner">
+                <div className="caption-tag-row">
+                  <span className="greenroom-caption-badge"><Sparkles size={11} /> LIVE CAPTION PREVIEW</span>
+                  <span className="greenroom-caption-subject">AI STEM Lexicon</span>
+                </div>
+                <div className="greenroom-caption-content">
+                  <b className="speaker-name">{currentSample.speaker}:</b>{' '}
+                  <span className="caption-body">{currentSample.text}</span>
+                </div>
               </div>
             </div>
-            <div className="gmeet-preview-footer">
-              <span>Ready to teach and learn with accessibility</span>
+
+            {/* Greenroom Footer & Hardware Metrics */}
+            <div className="greenroom-footer">
+              <div className="greenroom-metric">
+                <span className="metric-dot green" />
+                <span>Microphone: {previewMicOn ? 'Working' : 'Muted'}</span>
+              </div>
+              <div className="greenroom-metric">
+                <span className="metric-dot green" />
+                <span>WebRTC: Connected</span>
+              </div>
+              <div className="greenroom-metric">
+                <span className="metric-dot blue" />
+                <span>Sign Engine: Standby</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* College Institutional Attribution Strip */}
+      <footer className="gmeet-landing-footer">
+        <div className="footer-left">
+          <span><b>Rajalakshmi Institute of Technology, Chennai</b> • Department of Artificial Intelligence & Machine Learning</span>
+        </div>
+        <div className="footer-right">
+          <span>Guide: Mr. A. Satheesh • Team: Piriyarajan P, Imanuvel K, Prasanna Venkatesh N B</span>
+        </div>
+      </footer>
     </main>
   )
 }

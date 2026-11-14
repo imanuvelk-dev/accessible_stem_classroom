@@ -51,38 +51,87 @@ input, select, textarea {
 }
 
 /* ==========================================================================
-   LANDING PAGE (GOOGLE MEET STYLE)
+   LANDING PAGE (HIGH-TECH GOOGLE MEET STYLE)
    ========================================================================== */
 .gmeet-landing {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: var(--gmeet-bg);
+  position: relative;
+  overflow-x: hidden;
 }
 
+/* Ambient dynamic mesh glow backgrounds */
+.landing-ambient-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.glow-blue {
+  top: -120px;
+  left: -80px;
+  width: 650px;
+  height: 650px;
+  background: radial-gradient(circle, rgba(26, 115, 232, 0.22) 0%, transparent 68%);
+  filter: blur(80px);
+}
+
+.glow-purple {
+  top: 25%;
+  right: -140px;
+  width: 580px;
+  height: 580px;
+  background: radial-gradient(circle, rgba(142, 36, 170, 0.16) 0%, transparent 70%);
+  filter: blur(90px);
+}
+
+.glow-cyan {
+  bottom: 40px;
+  left: 25%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(0, 210, 255, 0.12) 0%, transparent 70%);
+  filter: blur(80px);
+}
+
+/* Top Navigation Bar */
 .gmeet-landing-header {
-  height: 68px;
-  padding: 0 32px;
+  height: 74px;
+  padding: 0 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--gmeet-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(23, 24, 28, 0.72);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .gmeet-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .gmeet-brand-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #1a73e8, #4285f4);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1a73e8, #60a5fa);
   color: #fff;
   display: grid;
   place-items: center;
+  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+}
+
+.gmeet-brand-meta {
+  display: flex;
+  flex-direction: column;
 }
 
 .gmeet-brand-text {
@@ -90,6 +139,7 @@ input, select, textarea {
   font-weight: 500;
   letter-spacing: -0.5px;
   color: var(--gmeet-text);
+  line-height: 1.15;
 }
 
 .gmeet-brand-text b {
@@ -97,91 +147,182 @@ input, select, textarea {
   font-weight: 700;
 }
 
-.gmeet-tag {
-  background: rgba(138, 180, 248, 0.15);
-  color: var(--gmeet-blue);
-  padding: 4px 10px;
-  border-radius: 12px;
+.gmeet-brand-sub {
   font-size: 11px;
+  color: var(--gmeet-text-secondary);
+  font-weight: 500;
+}
+
+.gmeet-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gmeet-pulse-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #c2e7ff;
+  background: rgba(138, 180, 248, 0.12);
+  border: 1px solid rgba(138, 180, 248, 0.25);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34a853;
+  box-shadow: 0 0 0 2px rgba(52, 168, 83, 0.3);
+  animation: pulse 2s infinite;
+}
+
+.gmeet-tag-rit {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--gmeet-text-secondary);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 600;
 }
 
-.gmeet-badge-secure {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--gmeet-text-secondary);
-  background: var(--gmeet-surface);
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--gmeet-border);
-}
-
+/* Hero Section */
 .gmeet-landing-hero {
   flex: 1;
-  max-width: 1300px;
+  max-width: 1360px;
   width: 100%;
   margin: 0 auto;
-  padding: 48px 32px;
+  padding: 48px 36px 64px 36px;
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 56px;
+  grid-template-columns: 1.12fr 0.88fr;
+  gap: 52px;
   align-items: center;
+  position: relative;
+  z-index: 5;
+}
+
+.gmeet-hero-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.gmeet-eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 30px;
+  background: rgba(138, 180, 248, 0.12);
+  border: 1px solid rgba(138, 180, 248, 0.35);
+  color: var(--gmeet-blue);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 22px;
+  width: fit-content;
+}
+
+.eyebrow-sparkle {
+  color: var(--gmeet-blue);
+  animation: bounce 1.5s infinite alternate;
 }
 
 .gmeet-hero-left h1 {
-  font-size: 46px;
-  font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -1px;
+  font-size: clamp(38px, 4.4vw, 54px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -1.2px;
   color: #fff;
   margin-bottom: 20px;
 }
 
+.hero-gradient-text {
+  background: linear-gradient(135deg, #8ab4f8 0%, #c2e7ff 45%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
 .gmeet-hero-sub {
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.65;
   color: var(--gmeet-text-secondary);
-  margin-bottom: 36px;
+  margin-bottom: 32px;
   max-width: 580px;
 }
 
+/* Joining Action Card */
 .gmeet-action-box {
-  background: var(--gmeet-surface);
-  border: 1px solid var(--gmeet-border);
-  padding: 24px;
-  border-radius: 16px;
-  max-width: 560px;
-  margin-bottom: 32px;
+  background: rgba(36, 38, 43, 0.75);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  padding: 26px;
+  border-radius: 20px;
+  margin-bottom: 34px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.gmeet-action-box:hover {
+  border-color: rgba(138, 180, 248, 0.4);
+}
+
+.gmeet-box-kicker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.gmeet-box-kicker span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gmeet-blue);
+}
+
+.gmeet-box-kicker small {
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
 }
 
 .gmeet-input-row {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.gmeet-name-wrapper {
+  flex: 1;
 }
 
 .gmeet-input-name {
-  flex: 1;
-  background: #17181a;
+  width: 100%;
+  background: #14161a;
   border: 1px solid var(--gmeet-border);
   color: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: 13px 16px;
+  border-radius: 10px;
   font-size: 14px;
+  transition: all 0.2s ease;
 }
 
 .gmeet-input-name:focus {
   border-color: var(--gmeet-blue);
-  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.25);
+  background: #191b22;
 }
 
 .gmeet-role-toggle {
   display: flex;
-  background: #17181a;
-  padding: 3px;
-  border-radius: 8px;
+  background: #14161a;
+  padding: 4px;
+  border-radius: 10px;
   border: 1px solid var(--gmeet-border);
 }
 
@@ -190,37 +331,76 @@ input, select, textarea {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: 7px;
   font-size: 13px;
+  color: var(--gmeet-text-secondary);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.gmeet-role-btn.active.student {
+  background: rgba(138, 180, 248, 0.2);
+  color: var(--gmeet-blue);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.gmeet-role-btn.active.teacher {
+  background: rgba(167, 139, 250, 0.22);
+  color: #c4b5fd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Quick setup persona chips */
+.gmeet-quick-personas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-size: 11px;
   color: var(--gmeet-text-secondary);
 }
 
-.gmeet-role-btn.active {
-  background: #3c4043;
-  color: #fff;
-  font-weight: 500;
+.gmeet-chip-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e8eaed;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 11px;
 }
 
+.gmeet-chip-btn:hover {
+  background: rgba(138, 180, 248, 0.15);
+  border-color: var(--gmeet-blue);
+  color: var(--gmeet-blue);
+}
+
+/* Join Buttons */
 .gmeet-join-actions {
   display: flex;
   gap: 14px;
+  margin-bottom: 14px;
 }
 
 .gmeet-btn-new-meeting {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--gmeet-blue);
-  color: #202124;
-  padding: 12px 20px;
-  border-radius: 8px;
+  gap: 9px;
+  background: linear-gradient(135deg, #1a73e8, #4285f4);
+  color: #fff;
+  padding: 13px 22px;
+  border-radius: 10px;
   font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.38);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.gmeet-btn-new-meeting:hover {
-  background: var(--gmeet-blue-hover);
+.gmeet-btn-new-meeting:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(26, 115, 232, 0.5);
+  background: linear-gradient(135deg, #1b7cfc, #5393f8);
 }
 
 .gmeet-code-join {
@@ -231,16 +411,19 @@ input, select, textarea {
 
 .gmeet-input-code {
   width: 100%;
-  background: #17181a;
+  background: #14161a;
   border: 1px solid var(--gmeet-border);
   color: #fff;
-  padding: 12px 64px 12px 14px;
-  border-radius: 8px;
+  padding: 13px 80px 13px 16px;
+  border-radius: 10px;
   font-size: 14px;
+  transition: all 0.2s ease;
 }
 
 .gmeet-input-code:focus {
   border-color: var(--gmeet-blue);
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.25);
+  background: #191b22;
 }
 
 .gmeet-btn-join {
@@ -249,14 +432,43 @@ input, select, textarea {
   top: 6px;
   bottom: 6px;
   padding: 0 16px;
-  background: transparent;
+  background: rgba(138, 180, 248, 0.12);
   color: var(--gmeet-blue);
   font-weight: 600;
-  border-radius: 6px;
+  font-size: 13px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .gmeet-btn-join:hover:not(:disabled) {
-  background: rgba(138, 180, 248, 0.1);
+  background: var(--gmeet-blue);
+  color: #202124;
+}
+
+/* Suggested Classroom Rooms */
+.gmeet-suggested-rooms {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+}
+
+.room-pill {
+  background: #1b1d22;
+  border: 1px solid var(--gmeet-border);
+  color: #c2e7ff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.room-pill:hover {
+  background: rgba(138, 180, 248, 0.15);
+  border-color: var(--gmeet-blue);
 }
 
 .gmeet-alert-error {
@@ -269,88 +481,298 @@ input, select, textarea {
   font-size: 13px;
 }
 
+/* Feature Showcase Strip */
 .gmeet-feature-strip {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 .gmeet-feature-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--gmeet-text-secondary);
-  font-size: 13px;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(32, 33, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }
 
-.gmeet-feature-item svg {
+.gmeet-feature-item:hover {
+  border-color: rgba(138, 180, 248, 0.35);
+  background: rgba(36, 38, 43, 0.85);
+}
+
+.feature-icon-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(138, 180, 248, 0.12);
   color: var(--gmeet-blue);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
 }
 
-/* Landing Preview Card */
-.gmeet-preview-card {
-  background: var(--gmeet-surface);
-  border: 1px solid var(--gmeet-border);
-  border-radius: 20px;
+.gmeet-feature-item b {
+  display: block;
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.gmeet-feature-item small {
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+}
+
+/* ==========================================================================
+   GOOGLE MEET GREEN ROOM (INTERACTIVE CAM/MIC PREVIEW)
+   ========================================================================== */
+.gmeet-hero-right {
+  display: flex;
+  justify-content: center;
+}
+
+.gmeet-greenroom-card {
+  width: 100%;
+  max-width: 490px;
+  background: rgba(32, 33, 36, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
 }
 
-.gmeet-preview-screen {
-  background: #17181a;
-  height: 320px;
+.greenroom-header {
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--gmeet-border);
+}
+
+.greenroom-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e8eaed;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34a853;
+}
+
+.greenroom-chip {
+  background: rgba(138, 180, 248, 0.15);
+  color: var(--gmeet-blue);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Greenroom Screen Area */
+.greenroom-screen {
+  background: #141518;
+  height: 340px;
   position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.greenroom-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.greenroom-avatar-box {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 20px;
 }
 
-.gmeet-preview-avatar {
+.greenroom-avatar {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: #1a73e8;
   color: #fff;
-  font-size: 40px;
+  font-size: 42px;
+  font-weight: 600;
   display: grid;
   place-items: center;
-  margin-bottom: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-.gmeet-preview-tag {
-  background: rgba(0, 0, 0, 0.6);
+.greenroom-name-tag {
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 13px;
-  color: #fff;
+  font-weight: 500;
 }
 
-.gmeet-preview-caption-sample {
-  position: absolute;
-  bottom: 16px;
-  left: 20px;
-  right: 20px;
-  background: rgba(32, 33, 36, 0.9);
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #fff;
-  border-left: 3px solid var(--gmeet-blue);
-}
-
-.gmeet-preview-caption-sample .caption-speaker {
-  color: var(--gmeet-blue);
-  font-weight: 600;
-  margin-right: 6px;
-}
-
-.gmeet-preview-footer {
-  padding: 16px 24px;
-  text-align: center;
+.greenroom-hint {
+  font-size: 12px;
   color: var(--gmeet-text-secondary);
-  font-size: 13px;
+  max-width: 260px;
+}
+
+/* Floating Hardware Controls on Preview */
+.greenroom-controls-bar {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.greenroom-round-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(32, 33, 36, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.greenroom-round-btn:hover {
+  background: #3c4043;
+}
+
+.greenroom-round-btn.muted {
+  background: var(--gmeet-red);
+  border-color: var(--gmeet-red);
+}
+
+.greenroom-round-btn.active {
+  background: rgba(138, 180, 248, 0.3);
+  border-color: var(--gmeet-blue);
+  color: var(--gmeet-blue);
+}
+
+/* Live Animated STEM Caption Banner */
+.greenroom-caption-banner {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: 14px;
+  background: rgba(28, 29, 32, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(138, 180, 248, 0.3);
+  border-left: 4px solid var(--gmeet-blue);
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+
+.caption-tag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.greenroom-caption-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gmeet-blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.greenroom-caption-subject {
+  font-size: 10px;
+  color: var(--gmeet-text-secondary);
+}
+
+.greenroom-caption-content {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #f1f3f4;
+}
+
+.speaker-name {
+  color: var(--gmeet-blue);
+  margin-right: 4px;
+}
+
+/* Greenroom Footer */
+.greenroom-footer {
+  padding: 14px 20px;
+  background: rgba(23, 24, 28, 0.6);
   border-top: 1px solid var(--gmeet-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.greenroom-metric {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--gmeet-text-secondary);
+}
+
+.metric-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.metric-dot.green {
+  background: #34a853;
+}
+
+.metric-dot.blue {
+  background: var(--gmeet-blue);
+}
+
+/* Institutional Attribution Footer */
+.gmeet-landing-footer {
+  padding: 18px 44px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 19, 24, 0.85);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #80868b;
+  position: relative;
+  z-index: 10;
+}
+
+.footer-left b {
+  color: #bdc1c6;
+}
+
+.footer-right {
+  font-size: 11px;
+  color: #6d737a;
 }
 
 /* ==========================================================================
