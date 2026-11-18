@@ -969,15 +969,27 @@ input, select, textarea {
 
 .gmeet-grid.count-1 {
   grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
 }
 
 .gmeet-grid.count-2 {
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
 }
 
 .gmeet-grid.count-3, .gmeet-grid.count-4 {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
+}
+
+.gmeet-grid.count-5, .gmeet-grid.count-6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr 1fr;
+}
+
+.gmeet-grid.count-7, .gmeet-grid.count-8, .gmeet-grid.count-9 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
 }
 
 .gmeet-tile {
@@ -990,6 +1002,11 @@ input, select, textarea {
   align-items: center;
   justify-content: center;
   transition: box-shadow 0.2s ease;
+  min-height: 0;
+}
+
+.gmeet-tile.tile-avatar-view {
+  background: radial-gradient(circle at center, #23252b 0%, #17181a 100%);
 }
 
 .gmeet-tile.speaking {
@@ -1004,15 +1021,40 @@ input, select, textarea {
 }
 
 .gmeet-avatar-placeholder {
-  width: 110px;
-  height: 110px;
+  width: 105px;
+  height: 105px;
   border-radius: 50%;
   color: #fff;
-  font-size: 46px;
+  font-size: 44px;
   font-weight: 600;
   display: grid;
   place-items: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  user-select: none;
+}
+
+.gmeet-grid.count-1 .gmeet-avatar-placeholder {
+  width: 130px;
+  height: 130px;
+  font-size: 54px;
+}
+
+.gmeet-grid.count-2 .gmeet-avatar-placeholder,
+.gmeet-grid.count-3 .gmeet-avatar-placeholder,
+.gmeet-grid.count-4 .gmeet-avatar-placeholder {
+  width: 95px;
+  height: 95px;
+  font-size: 40px;
+}
+
+.gmeet-grid.count-5 .gmeet-avatar-placeholder,
+.gmeet-grid.count-6 .gmeet-avatar-placeholder,
+.gmeet-grid.count-7 .gmeet-avatar-placeholder,
+.gmeet-grid.count-8 .gmeet-avatar-placeholder,
+.gmeet-grid.count-9 .gmeet-avatar-placeholder {
+  width: 72px;
+  height: 72px;
+  font-size: 30px;
 }
 
 .gmeet-tile-footer {
@@ -1027,7 +1069,7 @@ input, select, textarea {
 }
 
 .gmeet-tile-name {
-  background: rgba(32, 33, 36, 0.85);
+  background: rgba(32, 33, 36, 0.88);
   backdrop-filter: blur(4px);
   color: #fff;
   padding: 5px 12px;
@@ -1037,6 +1079,20 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 6px;
+  max-width: 85%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gmeet-tile-mic-on {
+  color: #34a853;
+  flex-shrink: 0;
+}
+
+.gmeet-tile-mic-off {
+  color: #ea4335;
+  flex-shrink: 0;
 }
 
 .speaking-icon {
@@ -1083,6 +1139,61 @@ input, select, textarea {
 
 .gmeet-caption-line {
   margin: 4px 0;
+}
+
+.gmeet-caption-line.interim {
+  opacity: 0.95;
+}
+
+.interim-text {
+  color: #c2e7ff;
+  font-style: italic;
+}
+
+.caption-typing-cursor {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--gmeet-blue);
+  font-weight: 700;
+  animation: pulse 1s infinite;
+}
+
+.captions-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #81c995;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.captions-idle-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--gmeet-text-secondary);
+  flex-wrap: wrap;
+}
+
+.gmeet-btn-start-mic-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--gmeet-blue);
+  color: #202124;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.gmeet-btn-start-mic-mini:hover {
+  transform: scale(1.04);
+  background: #a8c7fa;
 }
 
 .gmeet-caption-speaker {

@@ -53,6 +53,52 @@ function getAvatarColor(name: string) {
   return colors[Math.abs(hash) % colors.length]
 }
 
+function localContextualize(text: string) {
+  let processed = text.trim()
+  let changed = false
+
+  const PHONETIC_FIXES: [RegExp, string][] = [
+    [/\b(newtons?\s+second\s+law|newton\s+second\s+law)\b/gi, "Newton's second law"],
+    [/\b(newtons?\s+first\s+law)\b/gi, "Newton's first law"],
+    [/\b(newtons?\s+third\s+law)\b/gi, "Newton's third law"],
+    [/\b(photo\s*synthesis|photosyn\s*thesis)\b/gi, 'photosynthesis'],
+    [/\b(mito\s*chondria|mytochondria)\b/gi, 'mitochondria'],
+    [/\b(derivitive|the\s+derivative)\b/gi, 'derivative'],
+    [/\b(intergral)\b/gi, 'integral'],
+    [/\b(eigen\s*value|eigen-value)\b/gi, 'eigenvalue'],
+    [/\b(algorhythm)\b/gi, 'algorithm'],
+    [/\b(quadratic\s+equasion)\b/gi, 'quadratic equation'],
+    [/\b(ohms?\s+law)\b/gi, "Ohm's law"],
+    [/\b(sequel)\b/gi, 'SQL'],
+    [/\b(neuronal\s+network)\b/gi, 'neural network'],
+    [/\b(kinetic\s+enargy|kinetic\s+energee)\b/gi, 'kinetic energy'],
+    [/\b(gravitational\s+forces?)\b/gi, 'gravitational force'],
+    [/\b(sell\s+membrane)\b/gi, 'cell membrane'],
+    [/\b(machine-learning)\b/gi, 'machine learning'],
+    [/\b(artificial\s+inteligence)\b/gi, 'artificial intelligence'],
+    [/\b(dy\s+by\s+dx|d\s+by\s+dx)\b/gi, 'dy/dx'],
+    [/\b(f\s+of\s+x)\b/gi, 'f(x)'],
+    [/\b(f\s+prime\s+of\s+x)\b/gi, "f'(x)"],
+    [/\b(f\s+equals\s+m\s+a|f\s+equals\s+m\s*dot\s*a)\b/gi, 'F = m · a'],
+    [/\b(e\s+equals\s+m\s+c\s+squared)\b/gi, 'E = m · c²'],
+    [/\b(v\s+equals\s+i\s+r)\b/gi, 'V = I · R'],
+  ]
+
+  for (const [pattern, replacement] of PHONETIC_FIXES) {
+    if (pattern.test(processed)) {
+      processed = processed.replace(pattern, replacement)
+      changed = true
+    }
+  }
+
+  if (processed.length > 0) {
+    processed = processed.charAt(0).toUpperCase() + processed.slice(1)
+  }
+  processed = processed.replace(/\s+([,.;:!?])/g, '$1')
+
+  return { processed, changed }
+}
+
 export default function App() {
   const [name, setName] = useState('')
   const [roomName, setRoomName] = useState('')
@@ -487,8 +533,22 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   const [currentTime, setCurrentTime] = useState('')
   const [copied, setCopied] = useState(false)
   const [notice, setNotice] = useState('')
+  const [interimCaption, setInterimCaption] = useState<{ speaker: string; text: string } | null>(null)
+  const shouldListenRef = useRef(false)
   const recognitionRef = useRef<any>(null)
   const captionId = useRef(0)
+
+  // Compute all participants (local + remote) so every joined student has a visible tile
+  const allParticipants = useMemo(() => {
+    if (participants && participants.length > 0) {
+      const list = [...participants]
+      if (localParticipant && !list.some(p => p.identity === localParticipant.identity || p.sid === localParticipant.sid)) {
+        list.unshift(localParticipant)
+      }
+      return list
+    }
+    return localParticipant ? [localParticipant] : []
+  }, [participants, localParticipant])
 
   // Clock ticker
   useEffect(() => {
@@ -510,6 +570,13 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
           setChat(prev => [...prev.slice(-99), { ...data.item, id: data.item.id || crypto.randomUUID() }])
         } else if (data.type === 'caption') {
           setCaptionItems(prev => [...prev.slice(-79), data.item])
+          setInterimCaption(null)
+        } else if (data.type === 'interim-caption') {
+          if (data.text) {
+            setInterimCaption({ speaker: data.speaker, text: data.text })
+          } else {
+            setInterimCaption(null)
+          }
         } else if (data.type === 'hand-raise') {
           setRaisedHands(prev => ({ ...prev, [data.sender]: data.raised }))
         } else if (data.type === 'board') {
@@ -522,6 +589,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   }, [room])
 
   useEffect(() => () => {
+    shouldListenRef.current = false
     try { recognitionRef.current?.stop() } catch {}
     signStreamRef.current?.getTracks().forEach(track => track.stop())
   }, [])
@@ -558,20 +626,11 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   async function processCaption(raw: string) {
     const trimmed = raw.trim()
     if (!trimmed) return
-    let processed = trimmed
-    let changed = false
-    try {
-      const res = await fetch(`${API}/api/captions/contextualize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed, subject })
-      })
-      if (res.ok) {
-        const result = await res.json()
-        processed = result.caption || trimmed
-        changed = processed !== trimmed
-      }
-    } catch { /* fallback to raw */ }
+
+    // 1. Immediate local STEM context correction (0ms latency for seamless experience)
+    const { processed: localProcessed, changed: localChanged } = localContextualize(trimmed)
+    let processed = localProcessed
+    let changed = localChanged
 
     const item: CaptionItem = {
       id: ++captionId.current,
@@ -583,6 +642,24 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     }
     setCaptionItems(prev => [...prev.slice(-79), item])
     sendPacket({ type: 'caption', item })
+
+    // 2. Background async enhancement from server if available
+    try {
+      const res = await fetch(`${API}/api/captions/contextualize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: trimmed, subject })
+      })
+      if (res.ok) {
+        const result = await res.json()
+        if (result.caption && result.caption !== processed) {
+          item.text = result.caption
+          item.changed = true
+          setCaptionItems(prev => prev.map(c => (c.id === item.id ? { ...c, text: result.caption, changed: true } : c)))
+          sendPacket({ type: 'caption', item })
+        }
+      }
+    } catch { /* Local contextualization already applied */ }
   }
 
   function toggleRecognition() {
@@ -591,34 +668,106 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
       setNotice('Web Speech API is not supported in this browser. Please use Google Chrome or Microsoft Edge.')
       return
     }
+
     if (listening) {
+      shouldListenRef.current = false
       try { recognitionRef.current?.stop() } catch {}
       setListening(false)
+      setInterimCaption(null)
+      sendPacket({ type: 'interim-caption', speaker: name, text: '' })
       return
     }
+
+    shouldListenRef.current = true
     const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = true
     recognition.lang = 'en-US'
-    recognition.onstart = () => { setListening(true); setNotice('') }
-    recognition.onerror = (e: any) => {
-      setNotice(`Speech recognition error: ${e.error}.`)
-      setListening(false)
+
+    recognition.onstart = () => {
+      setListening(true)
+      setNotice('')
     }
-    recognition.onend = () => setListening(false)
+
+    recognition.onerror = (e: any) => {
+      if (e.error === 'no-speech') {
+        // Normal silence timeout in Chrome, ignore
+        return
+      }
+      if (e.error === 'not-allowed') {
+        setNotice('Microphone access was denied. Please allow microphone permissions in your browser.')
+        shouldListenRef.current = false
+        setListening(false)
+        return
+      }
+      setNotice(`Speech recognition notice: ${e.error}`)
+    }
+
+    recognition.onend = () => {
+      // Auto-restart if user still wants transcribing active (prevents Chrome silence dropouts!)
+      if (shouldListenRef.current) {
+        try {
+          recognition.start()
+        } catch {
+          setTimeout(() => {
+            if (shouldListenRef.current) {
+              try { recognition.start() } catch {}
+            }
+          }, 300)
+        }
+      } else {
+        setListening(false)
+        setInterimCaption(null)
+      }
+    }
+
     recognition.onresult = (e: any) => {
+      let interim = ''
       let finalText = ''
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' '
+        const transcript = e.results[i][0].transcript
+        if (e.results[i].isFinal) {
+          finalText += transcript + ' '
+        } else {
+          interim += transcript
+        }
       }
-      if (finalText.trim()) void processCaption(finalText)
+
+      if (interim.trim()) {
+        const item = { speaker: name, text: interim.trim() }
+        setInterimCaption(item)
+        sendPacket({ type: 'interim-caption', speaker: name, text: interim.trim() })
+      }
+
+      if (finalText.trim()) {
+        setInterimCaption(null)
+        sendPacket({ type: 'interim-caption', speaker: name, text: '' })
+        void processCaption(finalText)
+      }
     }
+
     recognitionRef.current = recognition
     try {
       recognition.start()
+      setListening(true)
     } catch {
       setNotice('Could not start microphone captioning.')
       setListening(false)
+      shouldListenRef.current = false
+    }
+  }
+
+  function toggleCaptionsDock() {
+    if (!captionEnabled) {
+      setCaptionEnabled(true)
+      if (!listening) {
+        toggleRecognition()
+      }
+    } else {
+      setCaptionEnabled(false)
+      if (listening) {
+        toggleRecognition()
+      }
     }
   }
 
@@ -877,22 +1026,53 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
       {/* Main Video Stage & Side Drawer Area (Split-Screen) */}
       <main className="gmeet-main">
         <section className="gmeet-stage-area">
-          {/* Responsive Participant Video Tiles */}
-          <div className={`gmeet-grid count-${Math.min(cameraTracks.length || 1, 4)}`}>
-            {cameraTracks.length > 0 ? (
-              cameraTracks.map(track => {
-                const participant = track.participant
-                const isSpeaking = speakingParticipants.includes(participant)
-                const isLocal = participant.isLocal
-                const isHandRaised = raisedHands[participant.name || participant.identity]
+          {/* Responsive Participant Video Tiles (Google Meet Multi-Box Layout) */}
+          <div className={`gmeet-grid count-${Math.min(allParticipants.length || 1, 9)}`}>
+            {allParticipants.length > 0 ? (
+              allParticipants.map(participant => {
+                const isSpeaking = speakingParticipants.some(
+                  sp => sp.identity === participant.identity || sp.sid === participant.sid
+                )
+                const isLocal = participant.isLocal || participant.identity === localParticipant?.identity
+                const participantName = participant.name || participant.identity || (isLocal ? name : 'Participant')
+                const isHandRaised = raisedHands[participantName] || raisedHands[participant.identity]
+
+                // Find active camera track for this participant
+                const camTrack = cameraTracks.find(
+                  t => (t.participant?.identity === participant.identity || t.participant?.sid === participant.sid) &&
+                       t.publication &&
+                       !t.publication.isMuted &&
+                       t.publication.track
+                )
+
                 return (
-                  <div key={track.publication.trackSid} className={`gmeet-tile ${isSpeaking ? 'speaking' : ''}`}>
-                    <VideoTrack trackRef={track} className="gmeet-video-track" />
+                  <div
+                    key={participant.sid || participant.identity || participantName}
+                    className={`gmeet-tile ${isSpeaking ? 'speaking' : ''} ${!camTrack ? 'tile-avatar-view' : ''}`}
+                  >
+                    {camTrack ? (
+                      <VideoTrack trackRef={camTrack} className="gmeet-video-track" />
+                    ) : (
+                      <div
+                        className="gmeet-avatar-placeholder"
+                        style={{ backgroundColor: getAvatarColor(participantName) }}
+                      >
+                        {participantName.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+
                     <div className="gmeet-tile-footer">
                       <span className="gmeet-tile-name">
-                        {isSpeaking ? <Volume2 size={14} className="speaking-icon" /> : null}
-                        {participant.name || participant.identity} {isLocal ? '(You)' : ''}
+                        {isSpeaking ? (
+                          <Volume2 size={14} className="speaking-icon" />
+                        ) : participant.isMicrophoneEnabled ? (
+                          <Mic size={13} className="gmeet-tile-mic-on" />
+                        ) : (
+                          <MicOff size={13} className="gmeet-tile-mic-off" />
+                        )}
+                        <span>{participantName} {isLocal ? '(You)' : ''}</span>
                       </span>
+
                       {isHandRaised && (
                         <span className="gmeet-hand-badge" title="Hand raised">
                           <Hand size={14} />
@@ -903,7 +1083,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                 )
               })
             ) : (
-              /* Single Fallback Tile when no other tracks exist */
+              /* Single Fallback Tile */
               <div className="gmeet-tile single-user">
                 <div className="gmeet-avatar-placeholder" style={{ backgroundColor: getAvatarColor(name) }}>
                   {name.slice(0, 1).toUpperCase()}
@@ -924,6 +1104,15 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
           {captionEnabled && (
             <div className="gmeet-captions-overlay">
               <div className="gmeet-captions-inner" style={{ fontSize: `${fontSize}px` }}>
+                {interimCaption && (
+                  <div className="gmeet-caption-line interim">
+                    <span className="gmeet-caption-speaker">{interimCaption.speaker}:</span>{' '}
+                    <span className="gmeet-caption-text interim-text">
+                      {interimCaption.text}
+                      <span className="caption-typing-cursor">...</span>
+                    </span>
+                  </div>
+                )}
                 {latestCaptions.length > 0 ? (
                   latestCaptions.map(c => (
                     <div key={c.id} className="gmeet-caption-line">
@@ -931,9 +1120,24 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                       <span className="gmeet-caption-text">{renderCaptionWithTerms(c.text)}</span>
                     </div>
                   ))
-                ) : (
+                ) : !interimCaption && (
                   <div className="gmeet-caption-idle">
-                    {listening ? 'Listening for speech… captions will appear here.' : 'Captions on • Turn on speech recognition to transcribe.'}
+                    {listening ? (
+                      <span className="captions-live-pill">
+                        <span className="pulse-dot green" /> Transcribing live... speak into your microphone
+                      </span>
+                    ) : (
+                      <div className="captions-idle-box">
+                        <span>Captions active • Waiting for dialogue</span>
+                        <button
+                          type="button"
+                          className="gmeet-btn-start-mic-mini"
+                          onClick={toggleRecognition}
+                        >
+                          <Mic size={13} /> Start Transcribing (My Mic)
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1588,8 +1792,8 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
           <button
             type="button"
             className={`gmeet-circle-btn ${captionEnabled ? 'active-blue' : ''}`}
-            onClick={() => setCaptionEnabled(!captionEnabled)}
-            title={captionEnabled ? 'Turn off subtitles' : 'Turn on subtitles'}
+            onClick={toggleCaptionsDock}
+            title={captionEnabled ? 'Turn off subtitles' : 'Turn on subtitles & transcribing'}
           >
             <Captions size={20} />
           </button>
