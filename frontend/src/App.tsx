@@ -82,6 +82,16 @@ function localContextualize(text: string) {
     [/\b(f\s+equals\s+m\s+a|f\s+equals\s+m\s*dot\s*a)\b/gi, 'F = m · a'],
     [/\b(e\s+equals\s+m\s+c\s+squared)\b/gi, 'E = m · c²'],
     [/\b(v\s+equals\s+i\s+r)\b/gi, 'V = I · R'],
+    [/\b(square\s+root\s+of|sq\s*root)\b/gi, '√'],
+    [/\b(summation\s+of|sigma\s+of)\b/gi, '∑'],
+    [/\b(a\s+t\s+p)\b/gi, 'ATP'],
+    [/\b(d\s+n\s+a)\b/gi, 'DNA'],
+    [/\b(r\s+n\s+a)\b/gi, 'RNA'],
+    [/\b(h\s+t\s+t\s+p|h\s+t\s+t\s+p\s+s)\b/gi, 'HTTP'],
+    [/\b(a\s+p\s+i)\b/gi, 'API'],
+    [/\b(c\s+p\s+u)\b/gi, 'CPU'],
+    [/\b(g\s+p\s+u)\b/gi, 'GPU'],
+    [/\b(chloroplasts?)\b/gi, 'chloroplast'],
   ]
 
   for (const [pattern, replacement] of PHONETIC_FIXES) {
@@ -538,6 +548,12 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   const recognitionRef = useRef<any>(null)
   const captionId = useRef(0)
 
+  // Real-time ultra-low-latency caption streaming timers & deduplication refs
+  const lastSentInterimRef = useRef<string>('')
+  const interimThrottleTimerRef = useRef<any>(null)
+  const fastCommitTimerRef = useRef<any>(null)
+  const lastCommittedTextRef = useRef<string>('')
+
   // Compute all participants (local + remote) so every joined student has a visible tile
   const allParticipants = useMemo(() => {
     if (participants && participants.length > 0) {
@@ -590,21 +606,23 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
 
   useEffect(() => () => {
     shouldListenRef.current = false
+    clearTimeout(fastCommitTimerRef.current)
+    clearTimeout(interimThrottleTimerRef.current)
     try { recognitionRef.current?.stop() } catch {}
     signStreamRef.current?.getTracks().forEach(track => track.stop())
   }, [])
 
-  function sendPacket(data: unknown) {
+  function sendPacket(data: unknown, reliable = true) {
     if (room.state !== 'connected') return
     const bytes = new TextEncoder().encode(JSON.stringify(data))
-    void localParticipant.publishData(bytes, { reliable: true, topic: 'accessclass' })
+    void localParticipant.publishData(bytes, { reliable, topic: 'accessclass' })
   }
 
   function toggleHandRaise() {
     const next = !handRaised
     setHandRaised(next)
     setRaisedHands(prev => ({ ...prev, [name]: next }))
-    sendPacket({ type: 'hand-raise', sender: name, raised: next })
+    sendPacket({ type: 'hand-raise', sender: name, raised: next }, true)
   }
 
   function sendMessage(kind: ChatItem['kind'] = 'chat') {
@@ -619,7 +637,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
       kind
     }
     setChat(prev => [...prev, item])
-    sendPacket({ type: 'classroom-message', item })
+    sendPacket({ type: 'classroom-message', item }, true)
     setMessage('')
   }
 
@@ -627,39 +645,41 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     const trimmed = raw.trim()
     if (!trimmed) return
 
-    // 1. Immediate local STEM context correction (0ms latency for seamless experience)
+    // 1. Instant client-side local STEM context correction (0ms latency!)
     const { processed: localProcessed, changed: localChanged } = localContextualize(trimmed)
-    let processed = localProcessed
-    let changed = localChanged
 
     const item: CaptionItem = {
       id: ++captionId.current,
       raw: trimmed,
-      text: processed,
+      text: localProcessed,
       speaker: name,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      changed
+      changed: localChanged
     }
-    setCaptionItems(prev => [...prev.slice(-79), item])
-    sendPacket({ type: 'caption', item })
 
-    // 2. Background async enhancement from server if available
-    try {
-      const res = await fetch(`${API}/api/captions/contextualize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed, subject })
-      })
-      if (res.ok) {
-        const result = await res.json()
-        if (result.caption && result.caption !== processed) {
-          item.text = result.caption
-          item.changed = true
-          setCaptionItems(prev => prev.map(c => (c.id === item.id ? { ...c, text: result.caption, changed: true } : c)))
-          sendPacket({ type: 'caption', item })
+    // 2. Publish immediately to local state and reliable WebRTC stream
+    setCaptionItems(prev => [...prev.slice(-79), item])
+    sendPacket({ type: 'caption', item }, true)
+
+    // 3. Optional async server enhancement
+    if (API) {
+      try {
+        const res = await fetch(`${API}/api/captions/contextualize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: trimmed, subject })
+        })
+        if (res.ok) {
+          const result = await res.json()
+          if (result.caption && result.caption !== localProcessed) {
+            item.text = result.caption
+            item.changed = true
+            setCaptionItems(prev => prev.map(c => (c.id === item.id ? { ...c, text: result.caption, changed: true } : c)))
+            sendPacket({ type: 'caption', item }, true)
+          }
         }
-      }
-    } catch { /* Local contextualization already applied */ }
+      } catch { /* Local contextualization already active */ }
+    }
   }
 
   function toggleRecognition() {
@@ -671,10 +691,12 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
 
     if (listening) {
       shouldListenRef.current = false
+      clearTimeout(fastCommitTimerRef.current)
+      clearTimeout(interimThrottleTimerRef.current)
       try { recognitionRef.current?.stop() } catch {}
       setListening(false)
       setInterimCaption(null)
-      sendPacket({ type: 'interim-caption', speaker: name, text: '' })
+      sendPacket({ type: 'interim-caption', speaker: name, text: '' }, false)
       return
     }
 
@@ -713,7 +735,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             if (shouldListenRef.current) {
               try { recognition.start() } catch {}
             }
-          }, 300)
+          }, 200)
         }
       } else {
         setListening(false)
@@ -733,16 +755,47 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
         }
       }
 
+      // Ultra-low-latency real-time streaming (< 50ms)
       if (interim.trim()) {
-        const item = { speaker: name, text: interim.trim() }
-        setInterimCaption(item)
-        sendPacket({ type: 'interim-caption', speaker: name, text: interim.trim() })
+        const { processed: contextualizedInterim } = localContextualize(interim)
+
+        // 1. Instant local display with STEM context in 0ms!
+        setInterimCaption({ speaker: name, text: contextualizedInterim })
+
+        // 2. Low-latency UDP transmission to remote participants (~40ms, no TCP queuing delay)
+        if (contextualizedInterim !== lastSentInterimRef.current) {
+          if (!interimThrottleTimerRef.current) {
+            interimThrottleTimerRef.current = setTimeout(() => {
+              interimThrottleTimerRef.current = null
+              lastSentInterimRef.current = contextualizedInterim
+              sendPacket({ type: 'interim-caption', speaker: name, text: contextualizedInterim }, false)
+            }, 45)
+          }
+        }
+
+        // 3. Fast Commit on natural micro-pause (650ms instead of Chrome's slow 2.5s wait!)
+        clearTimeout(fastCommitTimerRef.current)
+        fastCommitTimerRef.current = setTimeout(() => {
+          const toCommit = interim.trim()
+          if (toCommit.length > 2 && toCommit !== lastCommittedTextRef.current) {
+            lastCommittedTextRef.current = toCommit
+            void processCaption(toCommit)
+            setInterimCaption(null)
+            sendPacket({ type: 'interim-caption', speaker: name, text: '' }, false)
+          }
+        }, 650)
       }
 
+      // Browser finalization event
       if (finalText.trim()) {
-        setInterimCaption(null)
-        sendPacket({ type: 'interim-caption', speaker: name, text: '' })
-        void processCaption(finalText)
+        clearTimeout(fastCommitTimerRef.current)
+        const toCommit = finalText.trim()
+        if (toCommit !== lastCommittedTextRef.current) {
+          lastCommittedTextRef.current = toCommit
+          setInterimCaption(null)
+          sendPacket({ type: 'interim-caption', speaker: name, text: '' }, false)
+          void processCaption(toCommit)
+        }
       }
     }
 
@@ -844,7 +897,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     ctx.beginPath()
     ctx.moveTo(p.x, p.y)
     setDrawing(true)
-    sendPacket({ type: 'board', x: p.x, y: p.y, color: brushColor, start: true })
+    sendPacket({ type: 'board', x: p.x, y: p.y, color: brushColor, start: true }, false)
   }
   function moveDraw(e: any) {
     if (!drawing || !canvasRef.current) return
@@ -852,7 +905,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     const ctx = canvasRef.current.getContext('2d')!
     ctx.lineTo(p.x, p.y)
     ctx.stroke()
-    sendPacket({ type: 'board', x: p.x, y: p.y, color: brushColor, start: false })
+    sendPacket({ type: 'board', x: p.x, y: p.y, color: brushColor, start: false }, false)
   }
   function drawRemote(x: number, y: number, color: string, start: boolean) {
     const canvas = canvasRef.current
@@ -1108,7 +1161,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                   <div className="gmeet-caption-line interim">
                     <span className="gmeet-caption-speaker">{interimCaption.speaker}:</span>{' '}
                     <span className="gmeet-caption-text interim-text">
-                      {interimCaption.text}
+                      {renderCaptionWithTerms(interimCaption.text)}
                       <span className="caption-typing-cursor">...</span>
                     </span>
                   </div>
