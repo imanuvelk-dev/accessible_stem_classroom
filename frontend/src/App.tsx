@@ -1105,6 +1105,58 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     setSignStatus('Sign camera stopped.')
   }
 
+  function broadcastSignAsLiveCaption(phrase: string, label: string) {
+    // 1. Contextualize STEM vocabulary and technical formulas
+    const { processed, changed } = localContextualize(phrase)
+    const speakerTag = `${name} (${role === 'teacher' ? 'Teacher' : 'Student'} ${signLanguage} Sign)`
+    const liveCaptionString = `[${signLanguage} Sign: ${label}] ${processed}`
+
+    // 2. Ultra-Low-Latency Local Screen Update (0ms) - Displays immediately in Google Meet Subtitles Overlay
+    setInterimCaption({
+      speaker: speakerTag,
+      text: liveCaptionString
+    })
+
+    // 3. Ultra-Low-Latency WebRTC DataChannel Broadcast (<25ms UDP) to all students
+    sendPacket({
+      type: 'interim-caption',
+      speaker: speakerTag,
+      text: liveCaptionString
+    }, false)
+
+    // 4. Create permanent CaptionItem for student lecture transcript review
+    captionId.current += 1
+    const newCaptionItem: CaptionItem = {
+      id: captionId.current,
+      raw: phrase,
+      text: liveCaptionString,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      speaker: speakerTag,
+      changed: changed || true
+    }
+
+    // 5. Commit caption permanently to meeting transcript after 2.8 seconds
+    setTimeout(() => {
+      setCaptionItems(prev => [...prev.slice(-79), newCaptionItem])
+      sendPacket({ type: 'caption', item: newCaptionItem }, true)
+      setInterimCaption(prev => (prev?.text === liveCaptionString ? null : prev))
+    }, 2800)
+
+    // 6. Also mirror to Chat for students who want to copy notes
+    const chatMsg: ChatItem = {
+      id: crypto.randomUUID(),
+      sender: speakerTag,
+      role,
+      text: liveCaptionString,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      kind: 'student'
+    }
+    setChat(prev => [...prev, chatMsg])
+    sendPacket({ type: 'classroom-message', item: chatMsg }, true)
+
+    setSignStatus(`Live Sign Caption: "${label}" → Emitted to Meeting Subtitles`)
+  }
+
   function triggerEducationalSign(sign: typeof EDUCATIONAL_STEM_SIGNS[number]) {
     setDetectedSignEvent({
       id: sign.id,
@@ -1115,35 +1167,14 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
       setDetectedSignEvent(null)
     }, 4500)
 
-    const broadcastText = `[${signLanguage} Sign → Text] ${sign.phrase}`
-    const item: ChatItem = {
-      id: crypto.randomUUID(),
-      sender: `${name} (${signLanguage} Sign)`,
-      role,
-      text: broadcastText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      kind: 'student'
-    }
-    setChat(prev => [...prev, item])
-    sendPacket({ type: 'classroom-message', item })
-    setSignStatus(`YOLOv8 Recognized: "${sign.label}" (${signLanguage}) → Broadcasted to Room!`)
+    broadcastSignAsLiveCaption(sign.phrase, sign.label)
   }
 
   function sendRecognizedSign() {
     const text = signText.trim()
     if (!text) return
-    const item: ChatItem = {
-      id: crypto.randomUUID(),
-      sender: name,
-      role,
-      text: `[${signLanguage} Sign → Text] ${text}`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      kind: 'student'
-    }
-    setChat(prev => [...prev, item])
-    sendPacket({ type: 'classroom-message', item })
+    broadcastSignAsLiveCaption(text, "Manual Sign")
     setSignText('')
-    setSignStatus(`Sent sign translation: "${text}"`)
   }
 
   async function copyInvite() {
@@ -1436,7 +1467,12 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             <div className="gmeet-captions-overlay">
               <div className="gmeet-captions-inner" style={{ fontSize: `${fontSize}px` }}>
                 {interimCaption && (
-                  <div className="gmeet-caption-line interim">
+                  <div className={`gmeet-caption-line interim ${interimCaption.text.includes('Sign:') ? 'is-sign' : ''}`}>
+                    {interimCaption.text.includes('Sign:') && (
+                      <span className="gmeet-caption-sign-badge">
+                        <Languages size={12} /> Live Sign
+                      </span>
+                    )}
                     <span className="gmeet-caption-speaker">{interimCaption.speaker}:</span>{' '}
                     <span className="gmeet-caption-text interim-text">
                       {renderCaptionWithTerms(interimCaption.text)}
@@ -1446,7 +1482,12 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                 )}
                 {latestCaptions.length > 0 ? (
                   latestCaptions.map(c => (
-                    <div key={c.id} className="gmeet-caption-line">
+                    <div key={c.id} className={`gmeet-caption-line ${c.text.includes('Sign:') ? 'is-sign' : ''}`}>
+                      {c.text.includes('Sign:') && (
+                        <span className="gmeet-caption-sign-badge">
+                          <Languages size={12} /> Live Sign
+                        </span>
+                      )}
                       <span className="gmeet-caption-speaker">{c.speaker || 'Speaker'}:</span>{' '}
                       <span className="gmeet-caption-text">{renderCaptionWithTerms(c.text)}</span>
                     </div>
@@ -1455,11 +1496,11 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                   <div className="gmeet-caption-idle">
                     {listening ? (
                       <span className="captions-live-pill">
-                        <span className="pulse-dot green" /> Transcribing live... speak into your microphone
+                        <span className="pulse-dot green" /> Transcribing live... speak or sign in front of camera
                       </span>
                     ) : (
                       <div className="captions-idle-box">
-                        <span>Captions active • Waiting for dialogue</span>
+                        <span>Captions active • Speak into mic or use Sign Bridge to transcribe live</span>
                         <button
                           type="button"
                           className="gmeet-btn-start-mic-mini"
