@@ -561,6 +561,11 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   const signAnimFrameRef = useRef<number | null>(null)
   const signStreamRef = useRef<MediaStream | null>(null)
   const [aiDetectionEnabled, setAiDetectionEnabled] = useState(true)
+  const [autoBroadcastOnGesture, setAutoBroadcastOnGesture] = useState(false)
+  const autoBroadcastRef = useRef(false)
+  useEffect(() => { autoBroadcastRef.current = autoBroadcastOnGesture }, [autoBroadcastOnGesture])
+  const [currentLiveGesture, setCurrentLiveGesture] = useState<typeof EDUCATIONAL_STEM_SIGNS[number] | null>(null)
+  const liveGestureRef = useRef<typeof EDUCATIONAL_STEM_SIGNS[number] | null>(null)
   const [activeSignCategory, setActiveSignCategory] = useState<'all' | 'stem' | 'questions' | 'responses'>('all')
   const [detectedSignEvent, setDetectedSignEvent] = useState<{ id: string; label: string; confidence: number } | null>(null)
 
@@ -1030,34 +1035,43 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                 ctx.fillRect(rx, ry, rw, rh)
 
                 // YOLO Bounding Box Header Badge
-                const signObj = EDUCATIONAL_STEM_SIGNS.find(s => s.id === recognizedSignId)
+                const signObj = EDUCATIONAL_STEM_SIGNS.find(s => s.id === recognizedSignId) || null
                 const signTitle = signObj ? signObj.label : recognizedSignId.toUpperCase()
                 ctx.fillStyle = 'rgba(15, 23, 42, 0.88)'
-                ctx.fillRect(rx, Math.max(0, ry - 22), Math.min(220, rw + 40), 20)
+                ctx.fillRect(rx, Math.max(0, ry - 22), Math.min(240, rw + 40), 20)
                 ctx.fillStyle = '#00ffcc'
                 ctx.font = 'bold 11px monospace'
                 ctx.fillText(`YOLOv8: ${signTitle} (94%)`, rx + 4, Math.max(14, ry - 8))
 
-                // Check gesture stability / hold duration
-                if (recognizedSignId === lastSignCandidate) {
-                  signHoldCount++
-                } else {
-                  lastSignCandidate = recognizedSignId
-                  signHoldCount = 1
+                // Update current detected gesture state so user can view/click to transcribe
+                if (signObj && signObj.id !== liveGestureRef.current?.id) {
+                  liveGestureRef.current = signObj
+                  setCurrentLiveGesture(signObj)
                 }
 
-                // If held stable for ~10 cycles (~0.7s) and outside cooldown, auto-emit!
-                const now = Date.now()
-                if (signHoldCount >= 8 && (now - lastTriggerTime) > 3500) {
-                  lastTriggerTime = now
-                  signHoldCount = 0
-                  if (signObj) {
+                // ONLY auto-emit if user has explicitly enabled continuous auto-broadcast
+                if (autoBroadcastRef.current && signObj) {
+                  if (recognizedSignId === lastSignCandidate) {
+                    signHoldCount++
+                  } else {
+                    lastSignCandidate = recognizedSignId
+                    signHoldCount = 1
+                  }
+
+                  const now = Date.now()
+                  if (signHoldCount >= 18 && (now - lastTriggerTime) > 6000) {
+                    lastTriggerTime = now
+                    signHoldCount = 0
                     triggerEducationalSign(signObj)
                   }
                 }
               } else {
                 signHoldCount = 0
                 lastSignCandidate = ''
+                if (liveGestureRef.current !== null) {
+                  liveGestureRef.current = null
+                  setCurrentLiveGesture(null)
+                }
               }
             }
           }
@@ -1466,6 +1480,19 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
           {captionEnabled && (
             <div className="gmeet-captions-overlay">
               <div className="gmeet-captions-inner" style={{ fontSize: `${fontSize}px` }}>
+                {(interimCaption || latestCaptions.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterimCaption(null)
+                      setCaptionItems([])
+                    }}
+                    title="Dismiss on-screen subtitles"
+                    className="gmeet-caption-clear-btn"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
                 {interimCaption && (
                   <div className={`gmeet-caption-line interim ${interimCaption.text.includes('Sign:') ? 'is-sign' : ''}`}>
                     {interimCaption.text.includes('Sign:') && (
@@ -2006,6 +2033,43 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                     <div>
                       <b>YOLOv8-Pose & MediaPipe Pipeline</b>
                       <small>Tracks 21 hand landmarks & upper-body pose across 25 educational signs.</small>
+                    </div>
+                  </div>
+
+                  {currentLiveGesture && (
+                    <div style={{ margin: '8px 0', padding: '10px 12px', background: 'rgba(0, 255, 204, 0.12)', border: '1px solid #00ffcc', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div>
+                        <span style={{ fontSize: '10px', color: '#00ffcc', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>YOLO Detected Sign:</span>
+                        <b style={{ fontSize: '13px', color: '#fff', display: 'block' }}>{currentLiveGesture.label}</b>
+                      </div>
+                      <button
+                        type="button"
+                        className="gmeet-btn-primary-small"
+                        style={{ padding: '6px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                        onClick={() => triggerEducationalSign(currentLiveGesture)}
+                      >
+                        <Languages size={13} /> Emit to Subtitles
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="gmeet-setting-group" style={{ margin: '8px 0 12px 0' }}>
+                    <label>Sign Detection Trigger Mode</label>
+                    <div className="gmeet-pill-selector">
+                      <button
+                        type="button"
+                        className={!autoBroadcastOnGesture ? 'active' : ''}
+                        onClick={() => setAutoBroadcastOnGesture(false)}
+                      >
+                        <Check size={13} style={{ display: 'inline', marginRight: 4 }} /> Verified (No False Alarms)
+                      </button>
+                      <button
+                        type="button"
+                        className={autoBroadcastOnGesture ? 'active' : ''}
+                        onClick={() => setAutoBroadcastOnGesture(true)}
+                      >
+                        Continuous Auto-Emit
+                      </button>
                     </div>
                   </div>
 

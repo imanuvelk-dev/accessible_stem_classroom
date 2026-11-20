@@ -1237,6 +1237,28 @@ input, select, textarea {
   border-radius: 4px;
 }
 
+.gmeet-caption-clear-btn {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gmeet-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gmeet-caption-clear-btn:hover {
+  background: rgba(234, 67, 53, 0.4);
+  color: #fff;
+}
+
 /* Clickable STEM Term Pills */
 .gmeet-stem-term-pill {
   display: inline-block;
