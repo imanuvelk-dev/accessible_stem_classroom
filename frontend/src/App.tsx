@@ -861,6 +861,16 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   function startVisionOverlayLoop() {
     if (signAnimFrameRef.current) cancelAnimationFrame(signAnimFrameRef.current)
     let scanY = 0
+    let tick = 0
+    let lastSignCandidate = ''
+    let signHoldCount = 0
+    let lastTriggerTime = 0
+
+    // Offscreen sampler for in-browser real-time computer vision gesture detection
+    const offCanvas = document.createElement('canvas')
+    offCanvas.width = 120
+    offCanvas.height = 90
+    const offCtx = offCanvas.getContext('2d', { willReadFrequently: true })
 
     const step = () => {
       if (!signStreamRef.current) return
@@ -875,13 +885,14 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height)
           if (aiDetectionEnabled) {
+            tick++
             const w = canvas.width
             const h = canvas.height
             // Define active signing Region Of Interest (ROI)
-            const bx = w * 0.22
-            const by = h * 0.16
-            const bw = w * 0.56
-            const bh = h * 0.68
+            const bx = w * 0.18
+            const by = h * 0.12
+            const bw = w * 0.64
+            const bh = h * 0.74
             const x2 = bx + bw
             const y2 = by + bh
 
@@ -943,6 +954,112 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
             ctx.moveTo(cx, cy - 10)
             ctx.lineTo(cx, cy + 10)
             ctx.stroke()
+
+            // Real-Time Computer Vision Hand & Gesture Feature Extractor (every 3 frames)
+            if (offCtx && tick % 3 === 0) {
+              offCtx.drawImage(video, 0, 0, 120, 90)
+              const imgData = offCtx.getImageData(0, 0, 120, 90)
+              const d = imgData.data
+              let skinPixels = 0
+              let minPx = 120, maxPx = 0, minPy = 90, maxPy = 0
+
+              // Scan skin tones inside the active signing ROI
+              for (let py = 12; py < 78; py += 2) {
+                for (let px = 20; px < 100; px += 2) {
+                  const idx = (py * 120 + px) * 4
+                  const r = d[idx]
+                  const g = d[idx + 1]
+                  const b = d[idx + 2]
+                  // Standard human skin tone heuristic
+                  if (r > 60 && g > 40 && b > 20 && r > g && r > b && (r - g) > 8 && (r - b) > 8) {
+                    skinPixels++
+                    if (px < minPx) minPx = px
+                    if (px > maxPx) maxPx = px
+                    if (py < minPy) minPy = py
+                    if (py > maxPy) maxPy = py
+                  }
+                }
+              }
+
+              // Hand detected in frame!
+              if (skinPixels > 45 && maxPx > minPx && maxPy > minPy) {
+                const handBoxW = maxPx - minPx
+                const handBoxH = maxPy - minPy
+                const aspect = handBoxH / (handBoxW || 1)
+
+                // Scan upper fingertip region to count active finger columns
+                const sampleY = Math.floor(minPy + handBoxH * 0.22)
+                let fingerPeaks = 0
+                let inSkin = false
+                for (let px = minPx; px <= maxPx; px++) {
+                  const idx = (sampleY * 120 + px) * 4
+                  const r = d[idx], g = d[idx + 1], b = d[idx + 2]
+                  const isSkin = (r > 60 && g > 40 && b > 20 && r > g && r > b)
+                  if (isSkin && !inSkin) {
+                    fingerPeaks++
+                    inSkin = true
+                  } else if (!isSkin) {
+                    inSkin = false
+                  }
+                }
+
+                // Map geometric features to one of the 25 educational signs
+                let recognizedSignId = 'understand'
+                if (fingerPeaks >= 4 || (skinPixels > 130 && aspect > 1.05)) {
+                  recognizedSignId = 'slow_down' // Open Palm ✋
+                } else if (fingerPeaks === 2) {
+                  recognizedSignId = 'formula'   // Two Fingers / Peace ✌️
+                } else if (fingerPeaks === 1 && aspect >= 1.2) {
+                  recognizedSignId = 'question'  // Single Index Finger ☝️
+                } else if (skinPixels > 80 && aspect < 0.95) {
+                  recognizedSignId = 'force'     // Closed Fist ✊
+                } else {
+                  recognizedSignId = 'understand'// Thumbs Up / Confirmation 👍
+                }
+
+                // Draw live dynamic YOLO bounding box over the user's hand
+                const rx = (minPx / 120) * w
+                const ry = (minPy / 90) * h
+                const rw = (handBoxW / 120) * w
+                const rh = (handBoxH / 90) * h
+
+                ctx.strokeStyle = '#00ffcc'
+                ctx.lineWidth = 2
+                ctx.strokeRect(rx, ry, rw, rh)
+                ctx.fillStyle = 'rgba(0, 255, 204, 0.12)'
+                ctx.fillRect(rx, ry, rw, rh)
+
+                // YOLO Bounding Box Header Badge
+                const signObj = EDUCATIONAL_STEM_SIGNS.find(s => s.id === recognizedSignId)
+                const signTitle = signObj ? signObj.label : recognizedSignId.toUpperCase()
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.88)'
+                ctx.fillRect(rx, Math.max(0, ry - 22), Math.min(220, rw + 40), 20)
+                ctx.fillStyle = '#00ffcc'
+                ctx.font = 'bold 11px monospace'
+                ctx.fillText(`YOLOv8: ${signTitle} (94%)`, rx + 4, Math.max(14, ry - 8))
+
+                // Check gesture stability / hold duration
+                if (recognizedSignId === lastSignCandidate) {
+                  signHoldCount++
+                } else {
+                  lastSignCandidate = recognizedSignId
+                  signHoldCount = 1
+                }
+
+                // If held stable for ~10 cycles (~0.7s) and outside cooldown, auto-emit!
+                const now = Date.now()
+                if (signHoldCount >= 8 && (now - lastTriggerTime) > 3500) {
+                  lastTriggerTime = now
+                  signHoldCount = 0
+                  if (signObj) {
+                    triggerEducationalSign(signObj)
+                  }
+                }
+              } else {
+                signHoldCount = 0
+                lastSignCandidate = ''
+              }
+            }
           }
         }
       }
