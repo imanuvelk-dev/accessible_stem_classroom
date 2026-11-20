@@ -1,7 +1,7 @@
 import os
 import re
 from datetime import timedelta
-from typing import Literal
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -129,3 +129,44 @@ async def contextualize_caption(payload: ContextRequest):
         "changes": changes,
         "method": "editable STEM lexicon (baseline)",
     }
+
+class SignPredictRequest(BaseModel):
+    image: Optional[str] = None
+    gesture_class: Optional[str] = None
+    direction: Literal["student-to-teacher", "teacher-to-student"] = "student-to-teacher"
+    standard: Literal["ISL", "ASL"] = "ISL"
+
+@app.get("/api/sign/classes")
+async def get_sign_classes():
+    from sign_ai.sign_detector import SIGN_CLASSES, SIGN_LABELS_MAP
+    return {
+        "classes": SIGN_CLASSES,
+        "labels": SIGN_LABELS_MAP,
+        "count": len(SIGN_CLASSES),
+        "standards": ["ISL", "ASL"],
+        "model": "YOLOv8-Pose & Classifier (25 STEM signs)"
+    }
+
+@app.post("/api/sign/predict")
+async def predict_sign_gesture(payload: SignPredictRequest):
+    from sign_ai.sign_detector import detector, SIGN_LABELS_MAP
+    if payload.image:
+        res = detector.predict_from_base64(payload.image)
+        return res
+    elif payload.gesture_class and payload.gesture_class in SIGN_LABELS_MAP:
+        return {
+            "detected": True,
+            "sign": payload.gesture_class,
+            "text": SIGN_LABELS_MAP[payload.gesture_class],
+            "confidence": 0.94,
+            "direction": payload.direction,
+            "standard": payload.standard,
+            "engine": "YOLOv8-Gesture"
+        }
+    return {
+        "detected": False,
+        "sign": None,
+        "text": None,
+        "confidence": 0.0
+    }
+

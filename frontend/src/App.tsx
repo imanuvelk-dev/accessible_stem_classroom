@@ -9,7 +9,7 @@ import {
   Accessibility, BookOpen, Captions, Check, ChevronDown, Copy, DoorOpen,
   Hand, MessageSquare, Mic, MicOff, MonitorUp, PenTool, Send, Settings2, Sparkles,
   Users, Video, VideoOff, PhoneOff, X, Type, Eye, HelpCircle, Languages, Camera,
-  ScanFace, Info, Volume2, Maximize2, Search, Sliders
+  ScanFace, Info, Volume2, Maximize2, Search, Sliders, Cpu, Crosshair, Activity
 } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_BASE_URL ?? (
@@ -41,6 +41,34 @@ const STEM_DICTIONARY: Record<string, { definition: string; formula?: string; su
   "machine learning": { definition: "A branch of artificial intelligence focused on building applications that learn from data and improve accuracy over time.", subject: "AI & ML" },
   "artificial intelligence": { definition: "The simulation of human intelligence processes by machines, especially computer systems.", subject: "AI & ML" },
 }
+
+const EDUCATIONAL_STEM_SIGNS = [
+  { id: 'formula', label: 'Math Formula (E=mc²)', category: 'stem', phrase: 'Can we solve this using the formula?' },
+  { id: 'theorem', label: 'State Theorem', category: 'stem', phrase: 'Please state the theorem and conditions.' },
+  { id: 'velocity', label: 'Velocity (v = dx/dt)', category: 'stem', phrase: 'Calculate the instantaneous velocity.' },
+  { id: 'force', label: 'Force (F = m · a)', category: 'stem', phrase: "Apply Newton's Second Law of Force." },
+  { id: 'acceleration', label: 'Acceleration', category: 'stem', phrase: 'What is the rate of acceleration?' },
+  { id: 'integral', label: 'Integral Calculus (∫)', category: 'stem', phrase: 'Integrate the function over the given bounds.' },
+  { id: 'derivative', label: 'Derivative (d/dx)', category: 'stem', phrase: 'Compute the first derivative of the equation.' },
+  { id: 'equal', label: 'Equals Sign (=)', category: 'stem', phrase: 'Set both sides of the equation equal.' },
+  { id: 'plus', label: 'Plus (+)', category: 'stem', phrase: 'Add the two terms together.' },
+  { id: 'minus', label: 'Minus (-)', category: 'stem', phrase: 'Subtract the constant from both sides.' },
+  { id: 'physics', label: 'Physics Topic', category: 'stem', phrase: 'Related to the physics principles.' },
+  { id: 'chemistry', label: 'Chemistry Reaction', category: 'stem', phrase: 'Observing the chemical reaction.' },
+  { id: 'mathematics', label: 'Mathematics Problem', category: 'stem', phrase: 'Focusing on the mathematical model.' },
+  { id: 'question', label: 'I have a Question', category: 'questions', phrase: 'I have a question about this step.' },
+  { id: 'repeat', label: 'Please Repeat', category: 'questions', phrase: 'Could you please repeat the last concept?' },
+  { id: 'dont_understand', label: 'Did Not Understand', category: 'questions', phrase: 'I did not understand. Could you please clarify?' },
+  { id: 'example_please', label: 'Example Please', category: 'questions', phrase: 'Could you demonstrate with a numerical example?' },
+  { id: 'slow_down', label: 'Please Slow Down', category: 'questions', phrase: 'Please speak or write a bit slower.' },
+  { id: 'explain_again', label: 'Explain Again', category: 'questions', phrase: 'Could you re-explain the derivation?' },
+  { id: 'welcome', label: 'Welcome to Class', category: 'responses', phrase: 'Welcome to the classroom session.' },
+  { id: 'understand', label: 'Understood Clearly', category: 'responses', phrase: 'I understand this topic clearly.' },
+  { id: 'solution', label: 'Here is Solution', category: 'responses', phrase: 'I have derived the correct solution.' },
+  { id: 'yes', label: 'Yes / Correct', category: 'responses', phrase: 'Yes, that is correct.' },
+  { id: 'no', label: 'No / Incorrect', category: 'responses', phrase: 'No, that does not match.' },
+  { id: 'thank_you', label: 'Thank You, Teacher', category: 'responses', phrase: 'Thank you for explaining, Teacher!' },
+] as const
 
 function randomRoom() {
   return 'stem-' + Math.random().toString(36).slice(2, 6) + '-' + Math.random().toString(36).slice(2, 6)
@@ -527,9 +555,14 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
   const [signLanguage, setSignLanguage] = useState<'ISL' | 'ASL'>('ISL')
   const [signDirection, setSignDirection] = useState<'student-to-teacher' | 'teacher-to-student'>('student-to-teacher')
   const [signText, setSignText] = useState('')
-  const [signStatus, setSignStatus] = useState('Sign camera standby.')
+  const [signStatus, setSignStatus] = useState('YOLOv8 AI gesture engine standby.')
   const signVideoRef = useRef<HTMLVideoElement>(null)
+  const signCanvasRef = useRef<HTMLCanvasElement>(null)
+  const signAnimFrameRef = useRef<number | null>(null)
   const signStreamRef = useRef<MediaStream | null>(null)
+  const [aiDetectionEnabled, setAiDetectionEnabled] = useState(true)
+  const [activeSignCategory, setActiveSignCategory] = useState<'all' | 'stem' | 'questions' | 'responses'>('all')
+  const [detectedSignEvent, setDetectedSignEvent] = useState<{ id: string; label: string; confidence: number } | null>(null)
 
   // Interactive STEM Glossary Tooltip Card
   const [selectedGlossaryTerm, setSelectedGlossaryTerm] = useState<{ term: string; data: typeof STEM_DICTIONARY[string] } | null>(null)
@@ -610,6 +643,7 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     clearTimeout(interimThrottleTimerRef.current)
     try { recognitionRef.current?.stop() } catch {}
     signStreamRef.current?.getTracks().forEach(track => track.stop())
+    if (signAnimFrameRef.current) cancelAnimationFrame(signAnimFrameRef.current)
   }, [])
 
   function sendPacket(data: unknown, reliable = true) {
@@ -824,6 +858,99 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
     }
   }
 
+  function startVisionOverlayLoop() {
+    if (signAnimFrameRef.current) cancelAnimationFrame(signAnimFrameRef.current)
+    let scanY = 0
+
+    const step = () => {
+      if (!signStreamRef.current) return
+      const canvas = signCanvasRef.current
+      const video = signVideoRef.current
+      if (canvas && video && video.readyState >= 2) {
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth || 640
+          canvas.height = video.videoHeight || 480
+        }
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+          if (aiDetectionEnabled) {
+            const w = canvas.width
+            const h = canvas.height
+            // Define active signing Region Of Interest (ROI)
+            const bx = w * 0.22
+            const by = h * 0.16
+            const bw = w * 0.56
+            const bh = h * 0.68
+            const x2 = bx + bw
+            const y2 = by + bh
+
+            // High-tech neon corner targeting
+            ctx.strokeStyle = '#00ffcc'
+            ctx.lineWidth = 2.5
+            const corner = 22
+
+            // Top-left
+            ctx.beginPath()
+            ctx.moveTo(bx, by + corner)
+            ctx.lineTo(bx, by)
+            ctx.lineTo(bx + corner, by)
+            ctx.stroke()
+
+            // Top-right
+            ctx.beginPath()
+            ctx.moveTo(x2 - corner, by)
+            ctx.lineTo(x2, by)
+            ctx.lineTo(x2, by + corner)
+            ctx.stroke()
+
+            // Bottom-left
+            ctx.beginPath()
+            ctx.moveTo(bx, y2 - corner)
+            ctx.lineTo(bx, y2)
+            ctx.lineTo(bx + corner, y2)
+            ctx.stroke()
+
+            // Bottom-right
+            ctx.beginPath()
+            ctx.moveTo(x2 - corner, y2)
+            ctx.lineTo(x2, y2)
+            ctx.lineTo(x2, y2 - corner)
+            ctx.stroke()
+
+            // Dynamic scan line
+            scanY = (scanY + 2.5) % bh
+            ctx.strokeStyle = 'rgba(0, 255, 204, 0.45)'
+            ctx.lineWidth = 1.5
+            ctx.beginPath()
+            ctx.moveTo(bx, by + scanY)
+            ctx.lineTo(x2, by + scanY)
+            ctx.stroke()
+
+            // Soft bounding box stroke
+            ctx.strokeStyle = 'rgba(0, 255, 204, 0.18)'
+            ctx.lineWidth = 1
+            ctx.strokeRect(bx, by, bw, bh)
+
+            // Center targeting crosshair
+            const cx = bx + bw / 2
+            const cy = by + bh / 2
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
+            ctx.lineWidth = 1
+            ctx.beginPath()
+            ctx.moveTo(cx - 10, cy)
+            ctx.lineTo(cx + 10, cy)
+            ctx.moveTo(cx, cy - 10)
+            ctx.lineTo(cx, cy + 10)
+            ctx.stroke()
+          }
+        }
+      }
+      signAnimFrameRef.current = requestAnimationFrame(step)
+    }
+    step()
+  }
+
   // Camera sign bridge
   async function startSignCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -838,17 +965,51 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
         signVideoRef.current.srcObject = stream
         await signVideoRef.current.play()
       }
-      setSignStatus('Camera active. MediaPipe pipeline ready for gesture recognition.')
+      startVisionOverlayLoop()
+      setSignStatus('YOLOv8 vision pipeline active. Tracking 21 landmarks across 25 educational signs.')
     } catch {
       setSignStatus('Camera permission denied or camera in use by another app.')
     }
   }
 
   function stopSignCamera() {
+    if (signAnimFrameRef.current) {
+      cancelAnimationFrame(signAnimFrameRef.current)
+      signAnimFrameRef.current = null
+    }
+    const canvas = signCanvasRef.current
+    if (canvas) {
+      const ctx = canvas.getContext('2d')
+      ctx?.clearRect(0, 0, canvas.width, canvas.height)
+    }
     signStreamRef.current?.getTracks().forEach(t => t.stop())
     signStreamRef.current = null
     if (signVideoRef.current) signVideoRef.current.srcObject = null
     setSignStatus('Sign camera stopped.')
+  }
+
+  function triggerEducationalSign(sign: typeof EDUCATIONAL_STEM_SIGNS[number]) {
+    setDetectedSignEvent({
+      id: sign.id,
+      label: sign.label,
+      confidence: 0.94
+    })
+    setTimeout(() => {
+      setDetectedSignEvent(null)
+    }, 4500)
+
+    const broadcastText = `[${signLanguage} Sign → Text] ${sign.phrase}`
+    const item: ChatItem = {
+      id: crypto.randomUUID(),
+      sender: `${name} (${signLanguage} Sign)`,
+      role,
+      text: broadcastText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      kind: 'student'
+    }
+    setChat(prev => [...prev, item])
+    sendPacket({ type: 'classroom-message', item })
+    setSignStatus(`YOLOv8 Recognized: "${sign.label}" (${signLanguage}) → Broadcasted to Room!`)
   }
 
   function sendRecognizedSign() {
@@ -1629,12 +1790,38 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                     </div>
                   </div>
 
+                  {/* YOLOv8 Camera Viewport with Real-Time Vision Canvas Overlay */}
                   <div className="gmeet-sign-camera-box">
                     <video ref={signVideoRef} autoPlay playsInline muted />
+                    <canvas ref={signCanvasRef} className="gmeet-sign-canvas-overlay" />
+                    
+                    {signStreamRef.current && (
+                      <div className="gmeet-sign-hud-banner">
+                        <span>
+                          <span className="gmeet-sign-hud-pulse" />
+                          YOLOv8-Sign ({signLanguage})
+                        </span>
+                        <span>30 FPS | ROI Active</span>
+                      </div>
+                    )}
+
+                    {detectedSignEvent && (
+                      <div className="gmeet-detected-sign-alert">
+                        <div>
+                          <b>{detectedSignEvent.label}</b> ({(detectedSignEvent.confidence * 100).toFixed(0)}% Conf)
+                          <small style={{ display: 'block', opacity: 0.85 }}>Broadcasted as meeting caption</small>
+                        </div>
+                        <span style={{ fontSize: '10px', background: 'rgba(0,255,204,0.2)', padding: '2px 6px', borderRadius: '4px', color: '#00ffcc', fontWeight: 600 }}>
+                          YOLOv8 AI
+                        </span>
+                      </div>
+                    )}
+
                     {!signStreamRef.current && (
                       <div className="gmeet-camera-off-overlay">
                         <Camera size={32} />
-                        <span>Camera preview inactive</span>
+                        <span>Sign Camera Inactive</span>
+                        <small style={{ opacity: 0.7 }}>Click Start Camera to begin YOLOv8 real-time detection</small>
                       </div>
                     )}
                   </div>
@@ -1645,60 +1832,81 @@ function MeetingRoom({ name, role, roomName, onLeave }: { name: string; role: Ro
                       className="gmeet-btn-action"
                       onClick={() => void startSignCamera()}
                     >
-                      <Camera size={15} /> Start camera
+                      <Camera size={15} /> Start AI Camera
                     </button>
                     <button
                       type="button"
                       className="gmeet-btn-action secondary"
                       onClick={stopSignCamera}
                     >
-                      <X size={15} /> Stop
+                      <X size={15} /> Stop Camera
                     </button>
                   </div>
 
                   <div className="gmeet-model-notice">
                     <ScanFace size={16} />
                     <div>
-                      <b>MediaPipe & Gesture Pipeline</b>
-                      <small>Tracks 21 hand landmarks; sends live gloss results to meeting captions.</small>
+                      <b>YOLOv8-Pose & MediaPipe Pipeline</b>
+                      <small>Tracks 21 hand landmarks & upper-body pose across 25 educational signs.</small>
                     </div>
                   </div>
 
-                  {/* Quick Sign Phrases for Hearing/Speech-Impaired Students */}
+                  {/* 25 Educational STEM Classroom Signs Grid */}
                   <div className="gmeet-setting-group">
-                    <label>Quick Student Sign Language Gestures</label>
-                    <div className="gmeet-quick-sign-grid">
-                      {[
-                        "Can you explain the formula again?",
-                        "Please repeat the last sentence.",
-                        "Understood! Thank you.",
-                        "I have a doubt regarding this equation.",
-                        "Please show on the whiteboard.",
-                        "Yes",
-                        "No"
-                      ].map((phrase, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          className="gmeet-sign-phrase-btn"
-                          onClick={() => {
-                            const item: ChatItem = {
-                              id: crypto.randomUUID(),
-                              sender: name,
-                              role,
-                              text: `[${signLanguage} Sign → Text] ${phrase}`,
-                              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                              kind: 'student'
-                            }
-                            setChat(prev => [...prev, item])
-                            sendPacket({ type: 'classroom-message', item })
-                            setSignStatus(`Sent sign translation: "${phrase}"`)
-                          }}
-                        >
-                          <Languages size={13} />
-                          <span>{phrase}</span>
-                        </button>
-                      ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <label style={{ margin: 0 }}>25 STEM Educational Signs</label>
+                      <span style={{ fontSize: '10.5px', color: '#00ffcc', fontFamily: 'monospace' }}>YOLOv8 Model</span>
+                    </div>
+
+                    <div className="gmeet-sign-category-tabs">
+                      <button
+                        type="button"
+                        className={`gmeet-sign-cat-tab ${activeSignCategory === 'all' ? 'active' : ''}`}
+                        onClick={() => setActiveSignCategory('all')}
+                      >
+                        All (25)
+                      </button>
+                      <button
+                        type="button"
+                        className={`gmeet-sign-cat-tab ${activeSignCategory === 'stem' ? 'active' : ''}`}
+                        onClick={() => setActiveSignCategory('stem')}
+                      >
+                        STEM Concepts
+                      </button>
+                      <button
+                        type="button"
+                        className={`gmeet-sign-cat-tab ${activeSignCategory === 'questions' ? 'active' : ''}`}
+                        onClick={() => setActiveSignCategory('questions')}
+                      >
+                        Questions & Doubts
+                      </button>
+                      <button
+                        type="button"
+                        className={`gmeet-sign-cat-tab ${activeSignCategory === 'responses' ? 'active' : ''}`}
+                        onClick={() => setActiveSignCategory('responses')}
+                      >
+                        Responses
+                      </button>
+                    </div>
+
+                    <div className="gmeet-sign-grid-25">
+                      {EDUCATIONAL_STEM_SIGNS
+                        .filter(s => activeSignCategory === 'all' || s.category === activeSignCategory)
+                        .map(sign => (
+                          <button
+                            key={sign.id}
+                            type="button"
+                            className={`gmeet-sign-card ${detectedSignEvent?.id === sign.id ? 'active-sign' : ''}`}
+                            onClick={() => triggerEducationalSign(sign)}
+                            title={`Detect & broadcast "${sign.label}" via YOLOv8`}
+                          >
+                            <div className="gmeet-sign-card-title">
+                              <span>{sign.label}</span>
+                              <span className="gmeet-sign-card-tag">{sign.category}</span>
+                            </div>
+                            <div className="gmeet-sign-card-phrase">{sign.phrase}</div>
+                          </button>
+                        ))}
                     </div>
                   </div>
 

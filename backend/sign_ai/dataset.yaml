@@ -1,0 +1,39 @@
+# YOLOv8 Dataset Configuration for 25 Educational STEM Classroom Signs
+# Indian Sign Language (ISL) & American Sign Language (ASL)
+# Rajalakshmi Institute of Technology - Final Year Project
+
+path: ./dataset # dataset root dir
+train: images/train # train images (relative to 'path')
+val: images/val # val images (relative to 'path')
+test: images/test # test images (optional)
+
+# Number of classes
+nc: 25
+
+# Class names for classroom STEM education
+names:
+  0: "welcome"
+  1: "question"
+  2: "repeat"
+  3: "understand"
+  4: "dont_understand"
+  5: "formula"
+  6: "theorem"
+  7: "velocity"
+  8: "force"
+  9: "acceleration"
+  10: "integral"
+  11: "derivative"
+  12: "equal"
+  13: "plus"
+  14: "minus"
+  15: "solution"
+  16: "example_please"
+  17: "slow_down"
+  18: "yes"
+  19: "no"
+  20: "explain_again"
+  21: "physics"
+  22: "chemistry"
+  23: "mathematics"
+  24: "thank_you"
